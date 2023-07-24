@@ -914,6 +914,24 @@ class Orchestra(
                 )
             }
 
+        selector.testID
+            ?.let {
+                if (maestro.getTestEnvironment() === TestEnvironment.ANDROID){
+                    descriptions += "testID matching to text regex: $it"
+                    filters += Filters.deepestMatchingElement(
+                        Filters.textMatches(it.toRegexSafe(REGEX_OPTIONS))
+                    )
+                }
+                else if(maestro.getTestEnvironment() === TestEnvironment.ANDROID_MSITE ||
+                    maestro.getTestEnvironment() === TestEnvironment.IOS ||
+                    maestro.getTestEnvironment() === TestEnvironment.IOS_MSITE){
+                    descriptions += "testID matching to idRegex: $it"
+                    filters += Filters.deepestMatchingElement(
+                        Filters.idMatches(it.toRegexSafe(REGEX_OPTIONS))
+                    )
+                }
+            }
+
         selector.size
             ?.let {
                 descriptions += "Size: $it"

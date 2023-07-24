@@ -23,12 +23,14 @@ import com.github.romankh3.image.comparison.ImageComparison
 import maestro.Filters.asFilter
 import maestro.UiElement.Companion.toUiElementOrNull
 import maestro.drivers.WebDriver
+import maestro.testenvironment.TestEnvironment
 import maestro.utils.MaestroTimer
 import maestro.utils.ScreenshotUtils
 import maestro.utils.SocketUtils
 import okio.Sink
 import okio.buffer
 import okio.sink
+import org.mozilla.javascript.tools.shell.Environment
 import org.slf4j.LoggerFactory
 import java.awt.image.BufferedImage
 import java.io.File
@@ -39,6 +41,7 @@ import kotlin.system.measureTimeMillis
 class Maestro(private val driver: Driver) : AutoCloseable {
 
     private val sessionId = UUID.randomUUID()
+    private var tesEnvironment: TestEnvironment? = null
 
     private val cachedDeviceInfo by lazy {
         fetchDeviceInfo()
@@ -58,6 +61,19 @@ class Maestro(private val driver: Driver) : AutoCloseable {
         LOGGER.info("Getting device info")
 
         return driver.deviceInfo()
+    }
+
+    fun setTestEnvironment(tesEnvironment: String?){
+        when(tesEnvironment){
+            "android" -> this.tesEnvironment = TestEnvironment.ANDROID
+            "android_msite" -> this.tesEnvironment = TestEnvironment.ANDROID_MSITE
+            "ios" -> this.tesEnvironment = TestEnvironment.IOS
+            "ios_msite" -> this.tesEnvironment = TestEnvironment.IOS_MSITE
+        }
+    }
+
+    fun getTestEnvironment(): TestEnvironment?{
+        return this.tesEnvironment
     }
 
     fun launchApp(
