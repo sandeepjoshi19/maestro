@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 @JsonDeserialize(`as` = YamlElementSelector::class)
 data class YamlElementSelector(
+    val testID: String? = null,
     val text: String? = null,
     val id: String? = null,
     val width: Int? = null,

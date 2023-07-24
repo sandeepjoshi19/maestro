@@ -23,6 +23,7 @@ import com.github.romankh3.image.comparison.ImageComparison
 import maestro.Filters.asFilter
 import maestro.UiElement.Companion.toUiElementOrNull
 import maestro.drivers.WebDriver
+import maestro.testenvironment.TestEnvironment
 import maestro.utils.MaestroTimer
 import maestro.utils.ScreenshotUtils
 import maestro.utils.SocketUtils
@@ -41,6 +42,8 @@ class Maestro(
      val driver: Driver,
 ) : AutoCloseable {
 
+    private var tesEnvironment: TestEnvironment? = null
+
     val deviceName: String
         get() = driver.name()
 
@@ -55,6 +58,19 @@ class Maestro(
     fun deviceInfo() = driver.deviceInfo()
 
     private var screenRecordingInProgress = false
+
+    fun setTestEnvironment(tesEnvironment: String?){
+        when(tesEnvironment){
+            "android" -> this.tesEnvironment = TestEnvironment.ANDROID
+            "android_msite" -> this.tesEnvironment = TestEnvironment.ANDROID_MSITE
+            "ios" -> this.tesEnvironment = TestEnvironment.IOS
+            "ios_msite" -> this.tesEnvironment = TestEnvironment.IOS_MSITE
+        }
+    }
+
+    fun getTestEnvironment(): TestEnvironment?{
+        return this.tesEnvironment
+    }
 
     fun launchApp(
         appId: String,
