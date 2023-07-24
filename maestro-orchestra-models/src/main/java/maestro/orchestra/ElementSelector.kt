@@ -23,6 +23,7 @@ import maestro.js.JsEngine
 import maestro.orchestra.util.Env.evaluateScripts
 
 data class ElementSelector(
+    val testID: String? = null,
     val textRegex: String? = null,
     val idRegex: String? = null,
     val size: SizeSelector? = null,
@@ -51,6 +52,7 @@ data class ElementSelector(
 
     fun evaluateScripts(jsEngine: JsEngine): ElementSelector {
         return copy(
+            testID = testID?.evaluateScripts(jsEngine),
             textRegex = textRegex?.evaluateScripts(jsEngine),
             idRegex = idRegex?.evaluateScripts(jsEngine),
             below = below?.evaluateScripts(jsEngine),
@@ -73,6 +75,10 @@ data class ElementSelector(
 
         idRegex?.let {
             descriptions.add("id: $it")
+        }
+
+        testID?.let {
+            descriptions.add("Selecting Text with $it in android and ID $it in other platforms")
         }
 
         below?.let {

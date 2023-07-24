@@ -870,6 +870,7 @@ data class YamlFluentCommand(
         }
 
         return ElementSelector(
+            testID = selector.testID,
             textRegex = selector.text,
             idRegex = selector.id,
             size = size,
