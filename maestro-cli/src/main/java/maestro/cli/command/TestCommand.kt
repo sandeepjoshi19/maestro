@@ -93,6 +93,12 @@ class TestCommand : Callable<Int> {
     )
     private var excludeTags: List<String> = emptyList()
 
+    @Option(
+        names = ["--test-environment"],
+        description = ["Specify for with platform the test will be running ANDROID ANDROID_MSITE IOS IOS_MSITE"]
+    )
+    private var testEnvironment: String? = null
+
     @CommandLine.Spec
     lateinit var commandSpec: CommandLine.Model.CommandSpec
 
@@ -126,6 +132,8 @@ class TestCommand : Callable<Int> {
         return MaestroSessionManager.newSession(parent?.host, parent?.port, deviceId) { session ->
             val maestro = session.maestro
             val device = session.device
+            maestro.setTestEnvironment(testEnvironment)
+
 
             if (flowFile.isDirectory || format != ReportFormat.NOOP) {
                 if (continuous) {

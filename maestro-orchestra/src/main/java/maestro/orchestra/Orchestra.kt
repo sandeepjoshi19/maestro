@@ -36,6 +36,7 @@ import maestro.orchestra.filter.TraitFilters
 import maestro.orchestra.geo.Traveller
 import maestro.orchestra.util.Env.evaluateScripts
 import maestro.orchestra.yaml.YamlCommandReader
+import maestro.testenvironment.TestEnvironment
 import maestro.toSwipeDirection
 import maestro.utils.MaestroTimer
 import maestro.utils.StringUtils.toRegexSafe
@@ -834,6 +835,24 @@ class Orchestra(
                 filters += Filters.deepestMatchingElement(
                     Filters.idMatches(it.toRegexSafe(REGEX_OPTIONS))
                 )
+            }
+
+        selector.testID
+            ?.let {
+                if (maestro.getTestEnvironment() === TestEnvironment.ANDROID){
+                    descriptions += "testID matching to text regex: $it"
+                    filters += Filters.deepestMatchingElement(
+                        Filters.textMatches(it.toRegexSafe(REGEX_OPTIONS))
+                    )
+                }
+                else if(maestro.getTestEnvironment() === TestEnvironment.ANDROID_MSITE ||
+                    maestro.getTestEnvironment() === TestEnvironment.IOS ||
+                    maestro.getTestEnvironment() === TestEnvironment.IOS_MSITE){
+                    descriptions += "testID matching to idRegex: $it"
+                    filters += Filters.deepestMatchingElement(
+                        Filters.idMatches(it.toRegexSafe(REGEX_OPTIONS))
+                    )
+                }
             }
 
         selector.size
