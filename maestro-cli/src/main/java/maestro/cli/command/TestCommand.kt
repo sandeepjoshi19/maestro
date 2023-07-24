@@ -169,6 +169,12 @@ class TestCommand : Callable<Int> {
     @Option(names = ["--api-key"], description = ["[Beta] API key"])
     private var apiKey: String? = null
 
+    @Option(
+        names = ["--test-environment"],
+        description = ["Specify for with platform the test will be running ANDROID ANDROID_MSITE IOS IOS_MSITE"]
+    )
+    private var testEnvironment: String? = null
+
     @CommandLine.Spec
     lateinit var commandSpec: CommandLine.Model.CommandSpec
 
@@ -328,6 +334,8 @@ class TestCommand : Callable<Int> {
         ) { session ->
             val maestro = session.maestro
             val device = session.device
+            maestro.setTestEnvironment(testEnvironment)
+
 
             val isReplicatingSingleFile = shardAll != null && effectiveShards > 1 && flowFiles.isSingleFile
             val isMultipleFiles = flowFiles.isSingleFile.not()
