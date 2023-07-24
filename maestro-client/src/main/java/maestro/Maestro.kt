@@ -466,6 +466,22 @@ class Maestro(
         }
     }
 
+    fun findElementFromViewHierarchyWithTimeout(
+        timeoutMs: Long,
+        filter: ElementFilter,
+        viewHierarchy: ViewHierarchy
+    ): FindElementResult? {
+        val element = MaestroTimer.withTimeout(timeoutMs) {
+            filter(viewHierarchy.aggregate()).firstOrNull()
+        }?.toUiElementOrNull()
+
+        return if (element == null) {
+            null
+        } else {
+            return FindElementResult(element, viewHierarchy)
+        }
+    }
+
     fun allElementsMatching(filter: ElementFilter): List<TreeNode> {
         return filter(viewHierarchy().aggregate())
     }
