@@ -22,6 +22,27 @@ object PickDeviceView {
         return pickIndex(devices)
     }
 
+    @Synchronized
+    fun pickDeviceToStartParallelExecution(devices: List<Device>, connectedDevices: HashSet<String>): Device? {
+//        printIndexedDevices(devices)
+//
+//        println("Choose a device to boot and run on.")
+//        printEnterNumberPrompt()
+//        println(""+connectedDevices.size + " "+ devices.size)
+//        for ( connectedDevice in connectedDevices){
+//            println("Connected Device $connectedDevice")
+//        }
+        for (device in devices){
+            if (!connectedDevices.contains(device.description)){
+                println("Chosen Device: "+device.description)
+                connectedDevices.add(device.description)
+                return device
+            }
+        }
+
+       return null
+    }
+
     fun requestDeviceOptions(): DeviceStartOptions {
         PrintUtils.message("Please specify a device platform [android, ios, web]:")
         val platform = readlnOrNull()?.lowercase()?.let {

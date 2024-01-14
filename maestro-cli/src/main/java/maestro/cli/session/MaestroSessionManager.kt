@@ -60,15 +60,17 @@ object MaestroSessionManager {
         port: Int?,
         deviceId: String?,
         isStudio: Boolean = false,
+        connectedDevice: HashSet<String>? = null,
         block: (MaestroSession) -> T,
     ): T {
-        val selectedDevice = selectDevice(host, port, deviceId)
+        println("Insdide New Session"+ Thread.currentThread().name)
+        val selectedDevice = selectDevice(host, port, deviceId, connectedDevice)
         val sessionId = UUID.randomUUID().toString()
 
         val heartbeatFuture = executor.scheduleAtFixedRate(
             {
                 try {
-                    SessionStore.heartbeat(sessionId, selectedDevice.platform)
+                    SessionStore.heartbeat(sessionId, selectedDevice.platform, selectedDevice.device?.description)
                 } catch (e: Exception) {
                     logger.error("Failed to record heartbeat", e)
                 }
@@ -77,25 +79,31 @@ object MaestroSessionManager {
             5L,
             TimeUnit.SECONDS
         )
-
-        val session = SessionStore.withExclusiveLock {
+        println("newSession PreSessionCreation"+ Thread.currentThread().name)
+        val session = SessionStore.withExclusiveLock (selectedDevice.device?.description) {
             createMaestro(
                 selectedDevice = selectedDevice,
-                connectToExistingSession = SessionStore.hasActiveSessions(sessionId, selectedDevice.platform),
+                connectToExistingSession = SessionStore.hasActiveSessions(
+                    sessionId,
+                    selectedDevice.platform,
+                    selectedDevice.device?.description
+                ),
                 isStudio = isStudio
             )
         }
+        println("Post session Creation"+ Thread.currentThread().name)
         Runtime.getRuntime().addShutdownHook(thread(start = false) {
             SessionStore.withExclusiveLock {
                 heartbeatFuture.cancel(true)
-                SessionStore.delete(sessionId, selectedDevice.platform)
+                SessionStore.delete(sessionId, selectedDevice.platform, selectedDevice.device?.description)
                 runCatching { ScreenReporter.reportMaxDepth() }
 
-                if (SessionStore.activeSessions().isEmpty()) {
+                if (SessionStore.activeSessions(selectedDevice.device?.description).isEmpty()) {
                     session.close()
                 }
             }
         })
+
         Signal.handle(CustomSignalHandler.suspendSignal, CustomSignalHandler())
 
         return block(session)
@@ -105,6 +113,7 @@ object MaestroSessionManager {
         host: String?,
         port: Int?,
         deviceId: String?,
+        connectedDevice: HashSet<String>? = null
     ): SelectedDevice {
         if (deviceId == "chromium") {
             return SelectedDevice(
@@ -113,7 +122,12 @@ object MaestroSessionManager {
         }
 
         if (host == null) {
-            val device = PickDeviceInteractor.pickDevice(deviceId)
+            val device = if (connectedDevice == null) {
+                PickDeviceInteractor.pickDevice(deviceId)
+            } else {
+                PickDeviceInteractor.pickDeviceForParallelExecution( alreadyConnectedDevices = connectedDevice)
+            }
+            
 
             return SelectedDevice(
                 platform = device.platform,
@@ -143,6 +157,7 @@ object MaestroSessionManager {
         connectToExistingSession: Boolean,
         isStudio: Boolean,
     ): MaestroSession {
+        println("createMaestro ${Thread.currentThread().name}")
         return when {
             selectedDevice.device != null -> MaestroSession(
                 maestro = when (selectedDevice.device.platform) {
@@ -255,6 +270,7 @@ object MaestroSessionManager {
     }
 
     private fun createAndroid(instanceId: String, openDriver: Boolean): Maestro {
+        println("createAndroid Pre ${Thread.currentThread().name}")
         val driver = AndroidDriver(
             dadb = Dadb
                 .list()
@@ -262,7 +278,7 @@ object MaestroSessionManager {
                 ?: Dadb.discover()
                 ?: error("Unable to find device with id $instanceId"),
         )
-
+        println("createAndroid Post ${Thread.currentThread().name}")
         return Maestro.android(
             driver = driver,
             openDriver = openDriver,

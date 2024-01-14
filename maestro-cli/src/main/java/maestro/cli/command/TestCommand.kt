@@ -114,6 +114,8 @@ class TestCommand : Callable<Int> {
     }
 
     override fun call(): Int {
+        val startTime = System.currentTimeMillis()
+        println("Start Time: $startTime")
         if (parent?.platform != null) {
             throw CliError("--platform option was deprecated. You can remove it to run your test.")
         }
@@ -133,7 +135,7 @@ class TestCommand : Callable<Int> {
         TestDebugReporter.install(debugOutputPathAsString = debugOutput)
         val debugOutputPath = TestDebugReporter.getDebugOutputPath()
         
-        return MaestroSessionManager.newSession(parent?.host, parent?.port, deviceId) { session ->
+        val res = MaestroSessionManager.newSession(parent?.host, parent?.port, deviceId) { session ->
             val maestro = session.maestro
             val device = session.device
 
@@ -183,6 +185,10 @@ class TestCommand : Callable<Int> {
                 }
             }
         }
+        val endTime = System.currentTimeMillis()
+        println("End Time: $endTime")
+        println("Time Taken: ${(endTime - startTime)/1000} seconds")
+        return res
     }
 
     private fun printExitDebugMessage() {

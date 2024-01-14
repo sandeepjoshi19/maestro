@@ -30,14 +30,15 @@ class KeyValueStore(
     }
 
     fun <T> withExclusiveLock(block: () -> T): T {
+        println("Inside withExclusiveLockFile"+ Thread.currentThread().name + dbFile.absolutePath)
         val channel = RandomAccessFile(dbFile, "rw").channel
-
-        val lock = channel.lock()
+//        val lock = channel.lock()
         return try {
+            println("Insdide withExclusiveLock"+ Thread.currentThread().name)
             block()
         } finally {
-            lock.release()
-            channel.close()
+//            lock.release()
+//            channel.close()
         }
     }
 

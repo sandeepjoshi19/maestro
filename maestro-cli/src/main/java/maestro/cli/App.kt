@@ -36,6 +36,7 @@ import kotlin.system.exitProcess
     name = "maestro",
     subcommands = [
         TestCommand::class,
+        ParallelTestCommand::class,
         CloudCommand::class,
         RecordCommand::class,
         UploadCommand::class,

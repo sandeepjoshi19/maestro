@@ -36,6 +36,36 @@ object PickDeviceInteractor {
             }
     }
 
+    fun pickDeviceForParallelExecution(deviceId: String? = null, alreadyConnectedDevices: HashSet<String>): Device.Connected {
+        if (deviceId != null) {
+            return DeviceService.listConnectedDevices()
+                .find {
+                    it.instanceId == deviceId
+                } ?: throw CliError("Device with id $deviceId is not connected")
+        }
+
+        return pickDeviceForParallelExecutionInternal(alreadyConnectedDevices)
+            .let { pickedDevice ->
+                var result: Device? = pickedDevice
+
+                if (result != null &&  result is Device.AvailableForLaunch) {
+                    when (result.platform) {
+                        Platform.ANDROID -> PrintUtils.message("Launching Android emulator...")
+                        Platform.IOS -> PrintUtils.message("Launching iOS simulator...")
+                        Platform.WEB -> PrintUtils.message("Launching ${result.description}")
+                    }
+
+                    result = DeviceService.startDevice(result)
+                }
+
+                if (result !is Device.Connected) {
+                    error("Device $result is not connected")
+                }
+
+                result
+            }
+    }
+
     private fun pickDeviceInternal(): Device {
         val connectedDevices = DeviceService.listConnectedDevices()
 
@@ -52,6 +82,16 @@ object PickDeviceInteractor {
         }
 
         return pickRunningDevice(connectedDevices)
+    }
+
+    private fun pickDeviceForParallelExecutionInternal(alreadyConnectedDevices: HashSet<String>): Device? {
+        val connectedDevices = DeviceService.listConnectedDevices()
+
+//        if (connectedDevices.isEmpty()) {
+//            return startDevice()
+//        }
+
+        return pickRunningDeviceForParallelExecution(connectedDevices, alreadyConnectedDevices)
     }
 
     private fun startDevice(): Device {
@@ -95,6 +135,10 @@ object PickDeviceInteractor {
 
     private fun pickRunningDevice(devices: List<Device>): Device {
         return PickDeviceView.pickRunningDevice(devices)
+    }
+
+    private fun pickRunningDeviceForParallelExecution(devices: List<Device>, connectedDevices: HashSet<String>): Device? {
+        return PickDeviceView.pickDeviceToStartParallelExecution(devices, connectedDevices)
     }
 
 }

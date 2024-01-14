@@ -37,6 +37,7 @@ import maestro.android.AndroidLaunchArguments.toAndroidLaunchArguments
 import maestro.utils.BlockingStreamObserver
 import maestro.utils.MaestroTimer
 import maestro.utils.ScreenshotUtils
+import maestro.utils.SocketUtils
 import maestro.utils.StringUtils.toRegexSafe
 import maestro_android.*
 import net.dongliu.apk.parser.ApkFile
@@ -46,17 +47,18 @@ import org.w3c.dom.Element
 import org.w3c.dom.Node
 import java.io.File
 import java.io.IOException
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.*
 import javax.xml.parsers.DocumentBuilderFactory
+import kotlin.collections.HashSet
 import kotlin.io.use
 
 class AndroidDriver(
     private val dadb: Dadb,
-    private val hostPort: Int = 7001,
+    private val hostPort: Int = getFreePort(),
 ) : Driver {
 
-    private val channel = ManagedChannelBuilder.forAddress("localhost", hostPort)
+    private val channel = ManagedChannelBuilder.forAddress("localhost",hostPort)
         .usePlaintext()
         .build()
     private val blockingStub = MaestroDriverGrpc.newBlockingStub(channel)
@@ -73,9 +75,12 @@ class AndroidDriver(
     }
 
     override fun open() {
+        println("$hostPort $dadb ${Thread.currentThread().name}" )
+        println("open installMaestroApks $hostPort $dadb ${Thread.currentThread().name}" )
         installMaestroApks()
+        println("open startInstrumentationSession $hostPort $dadb ${Thread.currentThread().name}" )
         startInstrumentationSession()
-
+        println("open startInstrumentationSession end $hostPort $dadb ${Thread.currentThread().name}" )
         try {
             awaitLaunch()
         } catch (ignored: InterruptedException) {
@@ -87,6 +92,7 @@ class AndroidDriver(
     }
 
     private fun startInstrumentationSession() {
+        println("startInstrumentationSession ${Thread.currentThread().name}")
         val startTime = System.currentTimeMillis()
         val instrumentationCommand = "am instrument -w -m -e debug false " +
                 "-e class 'dev.mobile.maestro.MaestroDriverService#grpcServer' " +
@@ -96,16 +102,19 @@ class AndroidDriver(
             instrumentationSession = dadb.openShell(instrumentationCommand)
 
             if (instrumentationSession.successfullyStarted()) {
+                println("startInstrumentationSession End ${Thread.currentThread().name}")
                 return
             }
 
             instrumentationSession?.close()
             Thread.sleep(100)
         }
+        println("startInstrumentationSession End Error ${Thread.currentThread().name}")
         throw AndroidInstrumentationSetupFailure("Maestro instrumentation could not be initialized")
     }
 
     private fun allocateForwarder() {
+        println("allocateForwarder ${Thread.currentThread().name}")
         PORT_TO_FORWARDER[hostPort]?.close()
         PORT_TO_ALLOCATION_POINT[hostPort]?.let {
             LOGGER.warn("Port $hostPort was already allocated. Allocation point: $it")
@@ -116,6 +125,7 @@ class AndroidDriver(
             7001
         )
         PORT_TO_ALLOCATION_POINT[hostPort] = Exception().stackTraceToString()
+        println("allocateForwarderEnd ${Thread.currentThread().name}")
     }
 
     private fun awaitLaunch() {
@@ -821,42 +831,52 @@ class AndroidDriver(
     }
 
     fun installMaestroDriverApp() {
+        println("installMaestroDriverApp $hostPort $dadb ${Thread.currentThread().name}" )
         uninstallMaestroDriverApp()
 
         val maestroAppApk = File.createTempFile("maestro-app", ".apk")
 
         Maestro::class.java.getResourceAsStream("/maestro-app.apk")?.let {
+            println("installMaestroDriverApp apk buffer $hostPort $dadb ${Thread.currentThread().name}" )
             val bufferedSink = maestroAppApk.sink().buffer()
             bufferedSink.writeAll(it.source())
             bufferedSink.flush()
+            println("maestro apk buffer end $hostPort $dadb ${Thread.currentThread().name}" )
         }
 
         install(maestroAppApk)
         if (!isPackageInstalled("dev.mobile.maestro")) {
             throw IllegalStateException("dev.mobile.maestro was not installed")
         }
+        println("installMaestroDriverApp end $hostPort $dadb ${Thread.currentThread().name}" )
     }
 
     private fun installMaestroServerApp() {
+        println("installMaestroServerApp $hostPort $dadb ${Thread.currentThread().name}" )
         uninstallMaestroServerApp()
 
         val maestroServerApk = File.createTempFile("maestro-server", ".apk")
 
         Maestro::class.java.getResourceAsStream("/maestro-server.apk")?.let {
+            println("installMaestroServerAppBuffer $hostPort $dadb ${Thread.currentThread().name}" )
             val bufferedSink = maestroServerApk.sink().buffer()
             bufferedSink.writeAll(it.source())
             bufferedSink.flush()
+            println("installMaestroServerAppBuffer End $hostPort $dadb ${Thread.currentThread().name}" )
         }
 
         install(maestroServerApk)
         if (!isPackageInstalled("dev.mobile.maestro.test")) {
             throw IllegalStateException("dev.mobile.maestro.test was not installed")
         }
+        println("installMaestroServerApp end $hostPort $dadb ${Thread.currentThread().name}" )
     }
 
     private fun installMaestroApks() {
+        println("installMaestroApks $hostPort $dadb ${Thread.currentThread().name}" )
         installMaestroDriverApp()
         installMaestroServerApp()
+        println("installMaestroApks end $hostPort $dadb ${Thread.currentThread().name}" )
     }
 
     fun uninstallMaestroDriverApp() {
@@ -943,7 +963,6 @@ class AndroidDriver(
 
 
     companion object {
-
         private const val SERVER_LAUNCH_TIMEOUT_MS = 15000L
         private const val MAESTRO_DRIVER_STARTUP_TIMEOUT = "MAESTRO_DRIVER_STARTUP_TIMEOUT"
         private const val WINDOW_UPDATE_TIMEOUT_MS = 750
@@ -957,5 +976,23 @@ class AndroidDriver(
         private val PORT_TO_ALLOCATION_POINT = mutableMapOf<Int, String>()
         private const val SCREENSHOT_DIFF_THRESHOLD = 0.005
         private const val CHUNK_SIZE = 1024L * 1024L * 3L
+        @JvmStatic
+        private val frePorts = intArrayOf(7001, 7002, 7003, 7004)
+
+        @JvmStatic
+        private val occupiedPort: HashSet<Int> = HashSet()
+        init {
+            Collections.synchronizedSet(occupiedPort)
+        }
+        @JvmStatic
+        @Synchronized
+        fun getFreePort(): Int{
+            var freePort = SocketUtils.nextFreePort(7001,7010)
+            while (occupiedPort.contains(freePort)){
+                freePort = SocketUtils.nextFreePort(7001,7010)
+            }
+            occupiedPort.add(freePort)
+            return freePort
+        }
     }
 }
