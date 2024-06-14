@@ -941,7 +941,7 @@ class AndroidDriver(
 
         private const val SERVER_LAUNCH_TIMEOUT_MS = 15000L
         private const val MAESTRO_DRIVER_STARTUP_TIMEOUT = "MAESTRO_DRIVER_STARTUP_TIMEOUT"
-        private const val WINDOW_UPDATE_TIMEOUT_MS = 750
+        private const val WINDOW_UPDATE_TIMEOUT_MS = 250
 
         private val REGEX_OPTIONS = setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL, RegexOption.MULTILINE)
 
@@ -950,7 +950,7 @@ class AndroidDriver(
         private const val TOAST_CLASS_NAME = "android.widget.Toast"
         private val PORT_TO_FORWARDER = mutableMapOf<Int, AutoCloseable>()
         private val PORT_TO_ALLOCATION_POINT = mutableMapOf<Int, String>()
-        private const val SCREENSHOT_DIFF_THRESHOLD = 0.005
+        private const val SCREENSHOT_DIFF_THRESHOLD = 0.003
         private const val CHUNK_SIZE = 1024L * 1024L * 3L
     }
 }

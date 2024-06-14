@@ -606,8 +606,8 @@ class Maestro(private val driver: Driver) : AutoCloseable {
 
         private val LOGGER = LoggerFactory.getLogger(Maestro::class.java)
 
-        private const val SCREENSHOT_DIFF_THRESHOLD = 0.005 // 0.5%
-        private const val ANIMATION_TIMEOUT_MS: Long = 15000
+        private const val SCREENSHOT_DIFF_THRESHOLD = 0.002 // 0.5%
+        private const val ANIMATION_TIMEOUT_MS: Long = 1500
 
         fun ios(
             driver: Driver,

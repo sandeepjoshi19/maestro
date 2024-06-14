@@ -56,7 +56,7 @@ class ScreenshotUtils {
                 } while (System.currentTimeMillis() < endTime)
             } else {
                 latestHierarchy = initialHierarchy ?: viewHierarchy(driver)
-                repeat(10) {
+                repeat(5) {
                     val hierarchyAfter = viewHierarchy(driver)
                     if (latestHierarchy == hierarchyAfter) {
                         val isLoading = latestHierarchy.root.attributes.getOrDefault("is-loading", "false").toBoolean()
@@ -66,7 +66,7 @@ class ScreenshotUtils {
                     }
                     latestHierarchy = hierarchyAfter
 
-                    MaestroTimer.sleep(MaestroTimer.Reason.WAIT_TO_SETTLE, 200)
+                    MaestroTimer.sleep(MaestroTimer.Reason.WAIT_TO_SETTLE, 100)
                 }
             }
 
