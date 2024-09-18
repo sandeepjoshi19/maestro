@@ -126,6 +126,8 @@ class AnsiResultView(
 
         if (commandState.status == CommandStatus.SKIPPED) {
             render(" (skipped)")
+        } else if (commandState.status == CommandStatus.UNEXECUTED) {
+            render(" (unexecuted)")
         } else if (commandState.numberOfRuns != null) {
             val timesWord = if (commandState.numberOfRuns == 1) "time" else "times"
             render(" (completed ${commandState.numberOfRuns} $timesWord)")
@@ -212,6 +214,7 @@ class AnsiResultView(
             CommandStatus.RUNNING -> "⏳"
             CommandStatus.PENDING -> "\uD83D\uDD32"
             CommandStatus.SKIPPED -> "⚪️"
+            CommandStatus.UNEXECUTED -> "\uD83D\uDC4E"
         }
     }
 

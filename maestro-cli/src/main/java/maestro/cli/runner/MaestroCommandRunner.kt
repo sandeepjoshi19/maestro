@@ -19,7 +19,6 @@
 
 package maestro.cli.runner
 
-import io.ktor.client.utils.EmptyContent.status
 import maestro.Maestro
 import maestro.MaestroException
 import maestro.cli.device.Device
@@ -31,7 +30,6 @@ import maestro.cli.runner.resultview.UiState
 import maestro.orchestra.ApplyConfigurationCommand
 import maestro.orchestra.CompositeCommand
 import maestro.orchestra.MaestroCommand
-import maestro.orchestra.MaestroConfig
 import maestro.orchestra.Orchestra
 import maestro.orchestra.OrchestraAppState
 import maestro.orchestra.yaml.YamlCommandReader
@@ -178,6 +176,17 @@ object MaestroCommandRunner {
             onCommandMetadataUpdate = { command, metadata ->
                 logger.info("${command.description()} metadata $metadata")
                 commandMetadata[command] = metadata
+                refreshUi()
+            },
+            onCommandUnexecuted = {command ->
+                logger.info("${command.description()} UNEXECUTED")
+                commandStatuses[command] = CommandStatus.UNEXECUTED
+                debugCommands[command]?.let {
+                    it.status = CommandStatus.UNEXECUTED
+                    it.calculateDuration()
+                }
+                logger.info("${command.description()} UNEXECUTED")
+                commandStatuses[command] = CommandStatus.UNEXECUTED
                 refreshUi()
             },
         )

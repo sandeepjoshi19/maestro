@@ -19,10 +19,15 @@ data class TestExecutionSummary(
         val fileName: String?,
         val status: FlowStatus,
         val failure: Failure? = null,
+        val unexecuted: Unexecuted? = null,
         val duration: Duration? = null,
     )
 
     data class Failure(
+        val message: String,
+    )
+
+    data class Unexecuted(
         val message: String,
     )
 
