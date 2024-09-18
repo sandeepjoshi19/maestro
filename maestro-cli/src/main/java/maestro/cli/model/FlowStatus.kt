@@ -11,7 +11,8 @@ enum class FlowStatus {
     ERROR,
     CANCELED,
     STOPPED,
-    WARNING;
+    WARNING,
+    UNEXECUTED;
 
     companion object {
 
@@ -24,7 +25,8 @@ enum class FlowStatus {
             UploadStatus.Status.ERROR -> ERROR
             UploadStatus.Status.CANCELED -> CANCELED
             UploadStatus.Status.WARNING -> WARNING
-            UploadStatus.Status.STOPPED -> STOPPED
+            UploadStatus.Status.STOPPED -> STOPPED,
+            UploadStatus.Status.UNEXECUTED -> UNEXECUTED
         }
 
     }
