@@ -117,7 +117,7 @@ class PlainTextResultView: ResultView {
                     }
                 }
 
-                CommandStatus.COMPLETED, CommandStatus.FAILED, CommandStatus.SKIPPED, CommandStatus.WARNED -> {
+                CommandStatus.COMPLETED, CommandStatus.FAILED, CommandStatus.SKIPPED, CommandStatus.WARNED, CommandStatus.UNEXECUTED -> {
                     registerStep()
                     if (shouldPrintStep()) {
                         println(" " + status(command.status))
@@ -149,6 +149,7 @@ class PlainTextResultView: ResultView {
             CommandStatus.PENDING -> "PENDING"
             CommandStatus.SKIPPED -> "SKIPPED"
             CommandStatus.WARNED -> "WARNED"
+            CommandStatus.UNEXECUTED -> "UNEXECUTED"
         }
     }
 }

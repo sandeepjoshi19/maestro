@@ -47,6 +47,7 @@ import maestro.orchestra.geo.Traveller
 import maestro.orchestra.util.Env.evaluateScripts
 import maestro.orchestra.yaml.YamlCommandReader
 import maestro.toSwipeDirection
+import maestro.testenvironment.TestEnvironment
 import maestro.utils.Insight
 import maestro.utils.Insights
 import maestro.utils.MaestroTimer
@@ -100,6 +101,7 @@ class Orchestra(
     private val onCommandGeneratedOutput: (command: Command, defects: List<Defect>, screenshot: Buffer) -> Unit = { _, _, _ -> },
     private val apiKey: String? = null,
     private val AIPredictionEngine: AIPredictionEngine? = apiKey?.let { CloudAIPredictionEngine(it) },
+    private val onCommandUnexecuted: (MaestroCommand) -> Unit = { _ ->},
 ) {
 
     private lateinit var jsEngine: JsEngine
@@ -226,6 +228,9 @@ class Orchestra(
                     logger.info("[Command execution] CommandSkipped: ${ignored.message}")
                     // Swallow exception
                     onCommandSkipped(index, command)
+                } catch (e: MaestroException.UnexecutedCommand) {
+                    onCommandUnexecuted(command)
+                    throw MaestroException.UnexecutedCommand("Command not executed: ${command.description()}")
                 } catch (e: Throwable) {
                     logger.error("[Command execution] CommandFailed: ${e.message}")
                     val errorResolution = onCommandFailed(index, command, e)
@@ -396,9 +401,9 @@ class Orchestra(
 
             val word = if (defects.size == 1) "defect" else "defects"
             val reasoning = "Found ${defects.size} possible $word:\n${defects.joinToString("\n") { "- ${it.reasoning}" }}"
-            
+
             updateMetadata(maestroCommand, metadata.copy(aiReasoning = reasoning))
-            
+
 
             throw MaestroException.AssertionFailure(
                 message = """
@@ -428,7 +433,7 @@ class Orchestra(
 
         if (defect != null) {
             onCommandGeneratedOutput(command, listOf(defect), imageData)
-            
+
             val reasoning = "Assertion \"${command.assertion}\" failed:\n${defect.reasoning}"
             updateMetadata(maestroCommand, metadata.copy(aiReasoning = reasoning))
 
@@ -564,10 +569,14 @@ class Orchestra(
                 }
             } catch (ignored: MaestroException.ElementNotFound) {
               logger.error("Error: $ignored")
+            } catch (ignored: MaestroException.UnexecutedCommand){
+
             }
             maestro.swipeFromCenter(direction, durationMs = command.scrollDuration.toLong(), waitToSettleTimeoutMs = command.waitToSettleTimeoutMs)
         } while (System.currentTimeMillis() < endTime)
-
+        if (command.selector.notExecutedFlag == true) {
+            throw MaestroException.UnexecutedCommand("\"Unexecuted Command: ${command.selector.description()}\"")
+        }
         throw MaestroException.ElementNotFound(
             "No visible element found: ${command.selector.description()}",
             maestro.viewHierarchy().root
@@ -1042,21 +1051,20 @@ class Orchestra(
             return maestro.findElementWithTimeout(
                 timeout,
                 filterFunc,
-                parentViewHierarchy
-            ) ?: throw MaestroException.ElementNotFound(
+                parentViewHierarchy)?:if (selector.notExecutedFlag == true) throw MaestroException.UnexecutedCommand("Unexecuted Command: $description")
+            else throw MaestroException.ElementNotFound(
                 "Element not found: $description",
                 parentViewHierarchy.root,
             )
         }
 
+        return maestro.findElementWithTimeout(timeoutMs = timeout, filter = filterFunc)
+            ?: if (selector.notExecutedFlag == true) throw MaestroException.UnexecutedCommand("Unexecuted Command: $description")
+            else throw MaestroException.ElementNotFound(
+                "Element not found: $description",
+                maestro.viewHierarchy().root,
+            )
 
-        return maestro.findElementWithTimeout(
-            timeoutMs = timeout,
-            filter = filterFunc
-        ) ?: throw MaestroException.ElementNotFound(
-            "Element not found: $description",
-            maestro.viewHierarchy().root,
-        )
     }
 
     private fun findElementViewHierarchy(

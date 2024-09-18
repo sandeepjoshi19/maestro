@@ -173,6 +173,17 @@ object MaestroCommandRunner {
                 commandMetadata[command] = metadata
                 refreshUi()
             },
+            onCommandUnexecuted = {command ->
+                logger.info("${command.description()} UNEXECUTED")
+                commandStatuses[command] = CommandStatus.UNEXECUTED
+                debugCommands[command]?.let {
+                    it.status = CommandStatus.UNEXECUTED
+                    it.calculateDuration()
+                }
+                logger.info("${command.description()} UNEXECUTED")
+                commandStatuses[command] = CommandStatus.UNEXECUTED
+                refreshUi()
+            },
             onCommandGeneratedOutput = { command, defects, screenshot ->
                 logger.info("${command.description()} generated output")
                 val screenshotPath = ScreenshotUtils.writeAIscreenshot(screenshot)

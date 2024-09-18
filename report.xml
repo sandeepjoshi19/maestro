@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="emulator-5554" tests="1" failures="0" unexecuted="1" time="29">
+    <testcase id="searchAndclickOnAnItemFromHomepage" name="searchAndclickOnAnItemFromHomepage" classname="searchAndclickOnAnItemFromHomepage" time="29">
+      <unexecuted>Command not executed: Scrolling DOWN until "scrollUntilVisible" is visible.</unexecuted>
+    </testcase>
+  </testsuite>
+</testsuites>

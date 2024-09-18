@@ -630,7 +630,8 @@ data class UploadStatus(
         ERROR,
         CANCELED,
         WARNING,
-        STOPPED
+        STOPPED,
+        UNEXECUTED
     }
 
     // These values must match backend monorepo models
