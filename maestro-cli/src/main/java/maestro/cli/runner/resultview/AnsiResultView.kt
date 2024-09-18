@@ -128,6 +128,8 @@ class AnsiResultView(
             render(" (skipped)")
         } else if (commandState.status == CommandStatus.WARNED) {
             render(" (warned)")
+        } else if (commandState.status == CommandStatus.UNEXECUTED) {
+            render(" (unexecuted)")
         } else if (commandState.numberOfRuns != null) {
             val timesWord = if (commandState.numberOfRuns == 1) "time" else "times"
             render(" (completed ${commandState.numberOfRuns} $timesWord)")

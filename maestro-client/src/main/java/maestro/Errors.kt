@@ -53,6 +53,8 @@ sealed class MaestroException(override val message: String) : RuntimeException(m
 
     class UnableToCopyTextFromElement(message: String): MaestroException(message)
 
+    class UnexecutedCommand(message: String): MaestroException(message)
+
     class InvalidCommand(
         message: String,
     ) : MaestroException(message)

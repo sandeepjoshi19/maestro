@@ -231,11 +231,25 @@ class TestSuiteInteractor(
                                 defects = defects,
                             )
                         )
+                    },
+                    onCommandUnexecuted = {command ->
+                        logger.info("${command.description()} UNEXECUTED")
+                        debugCommands[command]?.let {
+                            it.status = CommandStatus.UNEXECUTED
+                            it.calculateDuration()
+                        }
                     }
                 )
 
+                config?.name?.let {
+                    flowName = it
+                }
+
                 val flowSuccess = orchestra.runFlow(commands)
                 flowStatus = if (flowSuccess) FlowStatus.SUCCESS else FlowStatus.ERROR
+            } catch (e: MaestroException.UnexecutedCommand) {
+                flowStatus = FlowStatus.UNEXECUTED
+                errorMessage = ErrorViewUtils.exceptionToMessage(e)
             } catch (e: Exception) {
                 logger.error("${shardPrefix}Failed to complete flow", e)
                 flowStatus = FlowStatus.ERROR
@@ -272,6 +286,11 @@ class TestSuiteInteractor(
                         message = shardPrefix + (errorMessage ?: debugOutput.exception?.message ?: "Unknown error"),
                     )
                 } else null,
+                unexecuted = if (flowStatus == FlowStatus.UNEXECUTED) {
+                    TestExecutionSummary.Unexecuted(
+                        message = errorMessage ?: debug.exception?.message ?: "Unexecuted"
+                    )
+                    } else null,
                 duration = flowDuration,
             ),
             second = aiOutput,

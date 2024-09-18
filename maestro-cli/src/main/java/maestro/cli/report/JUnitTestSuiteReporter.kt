@@ -36,6 +36,7 @@ class JUnitTestSuiteReporter(
                                 name = testSuiteName ?: "Test Suite",
                                 device = suite.deviceName,
                                 failures = suite.flows.count { it.status == FlowStatus.ERROR },
+                                unexecuted = suite.flows.count { it.status == FlowStatus.UNEXECUTED },
                                 time = suite.duration?.inWholeSeconds?.toString(),
                                 tests = suite.flows.size,
                                 testCases = suite.flows
@@ -47,6 +48,11 @@ class JUnitTestSuiteReporter(
                                             failure = flow.failure?.let { failure ->
                                                 Failure(
                                                     message = failure.message,
+                                                )
+                                            },
+                                            unexecuted = flow.unexecuted?.let { unexecuted ->
+                                                Unexecuted(
+                                                    message = unexecuted.message
                                                 )
                                             },
                                             time = flow.duration?.inWholeSeconds?.toString(),
@@ -72,6 +78,7 @@ class JUnitTestSuiteReporter(
         @JacksonXmlProperty(isAttribute = true) val device: String?,
         @JacksonXmlProperty(isAttribute = true) val tests: Int,
         @JacksonXmlProperty(isAttribute = true) val failures: Int,
+        @JacksonXmlProperty(isAttribute = true) val unexecuted: Int,
         @JacksonXmlProperty(isAttribute = true) val time: String? = null,
         @JacksonXmlElementWrapper(useWrapping = false)
         @JsonProperty("testcase")
@@ -85,9 +92,14 @@ class JUnitTestSuiteReporter(
         @JacksonXmlProperty(isAttribute = true) val time: String? = null,
         @JacksonXmlProperty(isAttribute = true) val status: FlowStatus,
         val failure: Failure? = null,
+        val unexecuted: Unexecuted? = null,
     )
 
     private data class Failure(
+        @JacksonXmlText val message: String,
+    )
+
+    private data class Unexecuted(
         @JacksonXmlText val message: String,
     )
 

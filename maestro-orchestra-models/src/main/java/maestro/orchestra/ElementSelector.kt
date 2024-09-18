@@ -41,7 +41,8 @@ data class ElementSelector(
     val selected: Boolean? = null,
     val checked: Boolean? = null,
     val focused: Boolean? = null,
-    val childOf: ElementSelector? = null
+    val childOf: ElementSelector? = null,
+    val notExecutedFlag: Boolean? = null,
 ) {
 
     data class SizeSelector(
@@ -62,7 +63,7 @@ data class ElementSelector(
             containsChild = containsChild?.evaluateScripts(jsEngine),
             containsDescendants = containsDescendants?.map { it.evaluateScripts(jsEngine) },
             index = index?.evaluateScripts(jsEngine),
-            childOf = childOf?.evaluateScripts(jsEngine)
+            childOf = childOf?.evaluateScripts(jsEngine),
         )
     }
 

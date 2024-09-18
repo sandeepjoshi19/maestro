@@ -58,7 +58,6 @@ object TestSuiteStatusView {
             val passedFlows = suite.flows
                 .filter { it.status == FlowStatus.SUCCESS || it.status == FlowStatus.WARNING }
 
-
             if (passedFlows.isNotEmpty()) {
                 val durationMessage = suite.duration?.let { " in $it" } ?: ""
                 PrintUtils.success(
@@ -69,9 +68,16 @@ object TestSuiteStatusView {
                 if (canceledFlows.isNotEmpty()) {
                     PrintUtils.warn("${shardPrefix}${canceledFlows.size} ${flowWord(canceledFlows.size)} Canceled")
                 }
-            } else {
-                println()
-                PrintUtils.err("${shardPrefix}All flows were canceled")
+            }
+            else {
+                val unexecutedFlows = suite.flows
+                    .filter { it.status == FlowStatus.UNEXECUTED }
+                if (unexecutedFlows.isNotEmpty()) {
+                    PrintUtils.warn("${unexecutedFlows.size} Unexecuted")
+                } else {
+                    println()
+                    PrintUtils.err("${shardPrefix}All flows were canceled")
+                }
             }
         }
         println()
@@ -108,6 +114,7 @@ object TestSuiteStatusView {
                 UploadStatus.CancellationReason.RUN_EXPIRED -> "Run expired"
                 else -> "Canceled (unknown reason)"
             }
+            FlowStatus.UNEXECUTED -> "Unexecuted"
         }
 
         print(
