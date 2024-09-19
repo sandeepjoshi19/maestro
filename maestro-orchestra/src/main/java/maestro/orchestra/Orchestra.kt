@@ -30,6 +30,7 @@ import maestro.orchestra.filter.TraitFilters
 import maestro.orchestra.geo.Traveller
 import maestro.orchestra.util.Env.evaluateScripts
 import maestro.orchestra.yaml.YamlCommandReader
+import maestro.testenvironment.TestEnvironment
 import maestro.utils.Insight
 import maestro.utils.Insights
 import maestro.utils.MaestroTimer
@@ -55,6 +56,7 @@ class Orchestra(
     private val onCommandSkipped: (Int, MaestroCommand) -> Unit = { _, _ -> },
     private val onCommandReset: (MaestroCommand) -> Unit = {},
     private val onCommandMetadataUpdate: (MaestroCommand, CommandMetadata) -> Unit = { _, _ -> },
+    private val onCommandUnexecuted: (MaestroCommand) -> Unit = { _ ->},
 ) {
 
     private lateinit var jsEngine: JsEngine
@@ -203,6 +205,9 @@ class Orchestra(
                 } catch (ignored: CommandSkipped) {
                     // Swallow exception
                     onCommandSkipped(index, command)
+                } catch (e: MaestroException.UnexecutedCommand) {
+                    onCommandUnexecuted(command)
+                    throw MaestroException.UnexecutedCommand("Command not executed: ${command.description()}")
                 } catch (e: Throwable) {
 
                     when (onCommandFailed(index, command, e)) {
@@ -407,10 +412,14 @@ class Orchestra(
                     return true
                 }
             } catch (ignored: MaestroException.ElementNotFound) {
+            } catch (ignored: MaestroException.UnexecutedCommand){
+
             }
             maestro.swipeFromCenter(direction, durationMs = command.scrollDuration)
         } while (System.currentTimeMillis() < endTime)
-
+        if (command.selector.notExecutedFlag == true) {
+            throw MaestroException.UnexecutedCommand("\"Unexecuted Command: ${command.selector.description()}\"")
+        }
         throw MaestroException.ElementNotFound(
             "No visible element found: ${command.selector.description()}",
             maestro.viewHierarchy().root
@@ -852,20 +861,20 @@ class Orchestra(
             return maestro.findElementFromViewHierarchyWithTimeout(
                 timeout,
                 filterFunc,
-                parentViewHierarchy)?:throw MaestroException.ElementNotFound(
+                parentViewHierarchy)?:if (selector.notExecutedFlag == true) throw MaestroException.UnexecutedCommand("Unexecuted Command: $description")
+            else throw MaestroException.ElementNotFound(
                 "Element not found: $description",
                 maestro.viewHierarchy().root,
             )
         }
 
+        return maestro.findElementWithTimeout(timeoutMs = timeout, filter = filterFunc)
+            ?: if (selector.notExecutedFlag == true) throw MaestroException.UnexecutedCommand("Unexecuted Command: $description")
+            else throw MaestroException.ElementNotFound(
+                "Element not found: $description",
+                maestro.viewHierarchy().root,
+            )
 
-        return maestro.findElementWithTimeout(
-            timeoutMs = timeout,
-            filter = filterFunc,
-        ) ?: throw MaestroException.ElementNotFound(
-            "Element not found: $description",
-            maestro.viewHierarchy().root,
-        )
     }
 
     private fun findElementViewHierarchy(

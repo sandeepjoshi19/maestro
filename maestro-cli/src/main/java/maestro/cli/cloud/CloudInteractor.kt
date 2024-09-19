@@ -364,6 +364,7 @@ class CloudInteractor(
             UploadStatus.Status.WARNING,
             UploadStatus.Status.SUCCESS,
             UploadStatus.Status.ERROR,
+            UploadStatus.Status.UNEXECUTED
         )
 
     }

@@ -453,6 +453,7 @@ data class UploadStatus(
         ERROR,
         CANCELED,
         WARNING,
+        UNEXECUTED,
     }
 
     enum class CancellationReason {
