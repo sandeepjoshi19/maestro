@@ -45,6 +45,15 @@ class RhinoJsEngine(
         context.initSafeStandardObjects(jsConsole)
         currentScope.put("console", currentScope, jsConsole)
 
+        val jsFileUtility = JsFileUtility()
+        jsFileUtility.defineFunctionProperties(
+            arrayOf("saveToFile"),
+            JsFileUtility::class.java,
+            ScriptableObject.DONTENUM
+        )
+        context.initSafeStandardObjects(jsFileUtility)
+        currentScope.put("files",currentScope, jsFileUtility)
+
         context.evaluateString(
             currentScope,
             Js.initScriptWithPlatform(platform),
