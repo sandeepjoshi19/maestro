@@ -33,6 +33,7 @@ class GraalJsEngine(
     private val outputBinding = HashMap<String, Any>()
     private val maestroBinding = HashMap<String, Any?>()
     private val envBinding = HashMap<String, String>()
+    private val fileBinding = GraalJsFileUtility()
 
     private var onLogMessage: (String) -> Unit = {}
 
@@ -90,6 +91,7 @@ class GraalJsEngine(
         context.getBindings("js").putMember("http", httpBinding)
         context.getBindings("js").putMember("output", ProxyObject.fromMap(outputBinding))
         context.getBindings("js").putMember("maestro", ProxyObject.fromMap(maestroBinding))
+        context.getBindings("js").putMember("files",fileBinding)
 
         context.eval(
             "js", """
