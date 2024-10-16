@@ -27,7 +27,7 @@ value class ViewHierarchy(val root: TreeNode) {
         fun from(driver: Driver, excludeKeyboardElements: Boolean): ViewHierarchy {
             val deviceInfo = driver.deviceInfo()
             val root = driver.contentDescriptor(excludeKeyboardElements).let {
-                val filtered = it.filterOutOfBounds(
+                val filtered = it?.filterOutOfBounds(
                     width = deviceInfo.widthGrid,
                     height = deviceInfo.heightGrid
                 )
@@ -105,7 +105,7 @@ fun TreeNode.filterOutOfBounds(width: Int, height: Int): TreeNode? {
     }
 
     val filtered = children.mapNotNull {
-        it.filterOutOfBounds(width, height)
+        it?.filterOutOfBounds(width, height)
     }.toList()
 
     // parent can have missing bounds
