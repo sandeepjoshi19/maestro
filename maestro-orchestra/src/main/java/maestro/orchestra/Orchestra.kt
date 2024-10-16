@@ -305,6 +305,10 @@ class Orchestra(
         return true
     }
 
+    fun executeJS( script: String?): String?{
+        return script?.evaluateScripts(jsEngine)
+    }
+
     private fun assertConditionCommand(command: AssertConditionCommand): Boolean {
         val timeout = (command.timeoutMs() ?: lookupTimeoutMs)
         if (!evaluateCondition(command.condition, timeoutMs = timeout)) {
