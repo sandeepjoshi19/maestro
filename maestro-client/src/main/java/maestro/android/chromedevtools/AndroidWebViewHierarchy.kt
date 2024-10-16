@@ -33,7 +33,7 @@ object AndroidWebViewHierarchy {
     }
 
     private fun isWebView(node: TreeNode): Boolean {
-        return node.attributes["class"] == "android.webkit.WebView" || node.attributes["accessibilityText"] == "Web View" || node.attributes["accessibilityText"]?.equals("WebView",true) == true
+        return node.attributes["class"] == "android.webkit.WebView" || node.attributes["accessibilityText"]?.equals("Web View", true) == true || node.attributes["accessibilityText"]?.equals("WebView",true) == true
     }
 
     fun mergeHierarchies(baseHierarchy: TreeNode, webViewHierarchy: List<TreeNode>): TreeNode {
@@ -72,10 +72,9 @@ object AndroidWebViewHierarchy {
             return null
         }
 
-        if (node.attributes["class"] == "android.webkit.WebView"){
+        if (isWebView(node)){
             return node
         }
-
         for ( child in node.children ){
             return node.children.firstNotNullOfOrNull { findWebViewNodes(it) }
         }
