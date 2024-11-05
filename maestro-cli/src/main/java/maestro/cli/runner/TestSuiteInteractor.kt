@@ -206,14 +206,15 @@ class TestSuiteInteractor(
                             it.status = CommandStatus.UNEXECUTED
                             it.calculateDuration()
                         }
+                        takeDebugScreenshot(CommandStatus.UNEXECUTED)
                     },
                 )
+                val flowSuccess = orchestra.runFlow(commands)
 
-                config?.name?.let {
+                orchestra.executeJS(config?.name)?.let {
                     flowName = it
                 }
 
-                val flowSuccess = orchestra.runFlow(commands)
                 flowStatus = if (flowSuccess) FlowStatus.SUCCESS else FlowStatus.ERROR
             } catch (e: MaestroException.UnexecutedCommand) {
                 flowStatus = FlowStatus.UNEXECUTED
