@@ -206,6 +206,7 @@ class TestSuiteInteractor(
                             it.status = CommandStatus.UNEXECUTED
                             it.calculateDuration()
                         }
+                        takeDebugScreenshot(CommandStatus.UNEXECUTED)
                     },
                 )
                 val flowSuccess = orchestra.runFlow(commands)
