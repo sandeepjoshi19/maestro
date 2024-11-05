@@ -121,8 +121,7 @@ object WorkspaceExecutionPlanner {
         // Handle sequential execution
 
         val pathsByName = allFlows.associateBy {
-            val config = configPerFlowFile[it]
-            (config?.name ?: parseFileName(it))
+            parseFileName(it)
         }
         val flowsToRunInSequence = workspaceConfig.executionOrder?.flowsOrder?.let {
             getFlowsToRunInSequence(pathsByName, it)
