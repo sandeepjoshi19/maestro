@@ -173,7 +173,7 @@ object MaestroCommandRunner {
                 commandMetadata[command] = metadata
                 refreshUi()
             },
-            onCommandUnexecuted = {command ->
+            onCommandUnexecuted = {command, _ ->
                 logger.info("${command.description()} UNEXECUTED")
                 commandStatuses[command] = CommandStatus.UNEXECUTED
                 debugCommands[command]?.let {

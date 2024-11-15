@@ -102,6 +102,7 @@ class Orchestra(
     private val apiKey: String? = null,
     private val AIPredictionEngine: AIPredictionEngine? = apiKey?.let { CloudAIPredictionEngine(it) },
     private val onCommandUnexecuted: (MaestroCommand) -> Unit = { _ ->},
+    private val onCommandUnexecuted: (MaestroCommand, (String?)-> String?) -> Unit = { _, _ ->},
 ) {
 
     private lateinit var jsEngine: JsEngine
@@ -229,7 +230,7 @@ class Orchestra(
                     // Swallow exception
                     onCommandSkipped(index, command)
                 } catch (e: MaestroException.UnexecutedCommand) {
-                    onCommandUnexecuted(command)
+                    onCommandUnexecuted(command,::executeJS)
                     throw MaestroException.UnexecutedCommand("Command not executed: ${command.description()}")
                 } catch (e: Throwable) {
                     logger.error("[Command execution] CommandFailed: ${e.message}")
