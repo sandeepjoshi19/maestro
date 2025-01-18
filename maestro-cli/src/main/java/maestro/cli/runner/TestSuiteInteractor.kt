@@ -200,11 +200,14 @@ class TestSuiteInteractor(
                             it.status = CommandStatus.PENDING
                         }
                     },
-                    onCommandUnexecuted = {command ->
+                    onCommandUnexecuted = {command, executeJs ->
                         logger.info("${command.description()} UNEXECUTED")
                         debugCommands[command]?.let {
                             it.status = CommandStatus.UNEXECUTED
                             it.calculateDuration()
+                        }
+                        executeJs(config?.name)?.let {
+                            flowName=it
                         }
                         takeDebugScreenshot(CommandStatus.UNEXECUTED)
                     },
