@@ -175,7 +175,7 @@ object MaestroCommandRunner {
             onCommandUnexecuted = {command, _ ->
                 logger.info("${command.description()} UNEXECUTED")
                 commandStatuses[command] = CommandStatus.UNEXECUTED
-                debugCommands[command]?.let {
+                debugOutput.commands[command]?.let {
                     it.status = CommandStatus.UNEXECUTED
                     it.calculateDuration()
                 }

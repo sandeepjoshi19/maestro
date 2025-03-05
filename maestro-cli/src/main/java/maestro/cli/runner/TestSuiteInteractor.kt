@@ -173,8 +173,8 @@ class TestSuiteInteractor(
                 val commands = YamlCommandReader
                     .readCommands(flowFile.toPath())
                     .withEnv(env)
-
-                YamlCommandReader.getConfig(commands)?.name?.let { flowName = it }
+                val config = YamlCommandReader.getConfig(commands)
+                config?.name?.let { flowName = it }
 
                 val orchestra = Orchestra(
                     maestro = maestro,
@@ -234,14 +234,14 @@ class TestSuiteInteractor(
                     },
                     onCommandUnexecuted = {command, executeJs ->
                         logger.info("${command.description()} UNEXECUTED")
-                        debugCommands[command]?.let {
+                        debugOutput.commands[command]?.let {
                             it.status = CommandStatus.UNEXECUTED
                             it.calculateDuration()
                         }
                         executeJs(config?.name)?.let {
                             flowName=it
                         }
-                        takeDebugScreenshot(CommandStatus.UNEXECUTED)
+                        ScreenshotUtils.takeDebugScreenshot(maestro, debugOutput,CommandStatus.UNEXECUTED)
                     },
                 )
                 val flowSuccess = orchestra.runFlow(commands)
@@ -292,9 +292,9 @@ class TestSuiteInteractor(
                 } else null,
                 unexecuted = if (flowStatus == FlowStatus.UNEXECUTED) {
                     TestExecutionSummary.Unexecuted(
-                        message = errorMessage ?: debug.exception?.message ?: "Unexecuted"
+                        message = errorMessage ?: debugOutput.exception?.message ?: "Unexecuted"
                     )
-                    } else null,
+                } else null,
                 duration = flowDuration,
             ),
             second = aiOutput,

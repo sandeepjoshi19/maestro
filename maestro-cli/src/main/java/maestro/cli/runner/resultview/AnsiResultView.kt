@@ -260,6 +260,7 @@ class AnsiResultView(
                 CommandStatus.PENDING -> "\uD83D\uDD32 " // 🔲
                 CommandStatus.WARNED -> "⚠️ "
                 CommandStatus.SKIPPED -> "⚪️ "
+                CommandStatus.UNEXECUTED -> "\uD83D\uDC4E"
             }
         } else {
             return when (status) {
@@ -269,6 +270,7 @@ class AnsiResultView(
                 CommandStatus.PENDING -> "  "
                 CommandStatus.WARNED -> "! "
                 CommandStatus.SKIPPED -> "- "
+                CommandStatus.UNEXECUTED -> "* "
             }
         }
     }
