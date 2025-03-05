@@ -101,7 +101,6 @@ class Orchestra(
     private val onCommandGeneratedOutput: (command: Command, defects: List<Defect>, screenshot: Buffer) -> Unit = { _, _, _ -> },
     private val apiKey: String? = null,
     private val AIPredictionEngine: AIPredictionEngine? = apiKey?.let { CloudAIPredictionEngine(it) },
-    private val onCommandUnexecuted: (MaestroCommand) -> Unit = { _ ->},
     private val onCommandUnexecuted: (MaestroCommand, (String?)-> String?) -> Unit = { _, _ ->},
 ) {
 
