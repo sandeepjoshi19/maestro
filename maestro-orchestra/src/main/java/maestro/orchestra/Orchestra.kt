@@ -97,7 +97,6 @@ class Orchestra(
     private val onCommandReset: (MaestroCommand) -> Unit = {},
     private val onCommandMetadataUpdate: (MaestroCommand, CommandMetadata) -> Unit = { _, _ -> },
     private val onCommandGeneratedOutput: (command: Command, defects: List<Defect>, screenshot: Buffer) -> Unit = { _, _, _ -> },
-    private val onCommandUnexecuted: (MaestroCommand) -> Unit = { _ ->},
     private val onCommandUnexecuted: (MaestroCommand, (String?)-> String?) -> Unit = { _, _ ->},
 ) {
 
