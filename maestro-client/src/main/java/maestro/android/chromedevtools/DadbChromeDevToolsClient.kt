@@ -6,7 +6,11 @@ import com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PRO
 import com.fasterxml.jackson.databind.type.TypeFactory
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.gson.Gson
+import com.google.gson.JsonParser
+import com.google.gson.JsonSyntaxException
 import dadb.Dadb
+import maestro.Bounds
 import maestro.Maestro
 import maestro.TreeNode
 import maestro.utils.HttpClient
@@ -93,15 +97,26 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
             .filter { it.visible }
             .mapNotNull { info ->
                 try {
-                    evaluateScript<RuntimeResponse<TreeNode>>(info.socketName, info.webSocketDebuggerUrl, "$script; maestro.viewportX = ${info.screenX}; maestro.viewportY = ${info.screenY}; maestro.viewportWidth = ${info.width}; maestro.viewportHeight = ${info.height}; window.maestro.getContentDescription();").result.value
+                    evaluateScript<RuntimeResponse<TreeNode>>(
+                        info.socketName,
+                        info.webSocketDebuggerUrl,
+                        "$script; maestro.viewportX = ${info.screenX}; maestro.viewportY = ${info.screenY}; maestro.viewportWidth = ${info.width}; maestro.viewportHeight = ${info.height}; window.maestro.getContentDescription();"
+                    ).result.value
                 } catch (e: IOException) {
-                    logger.warn("Failed to retrieve WebView hierarchy from chrome devtools: ${info.socketName} ${info.webSocketDebuggerUrl}", e)
+                    logger.warn(
+                        "Failed to retrieve WebView hierarchy from chrome devtools: ${info.socketName} ${info.webSocketDebuggerUrl}",
+                        e
+                    )
                     null
                 }
             }
     }
 
-    inline fun <reified T> evaluateScript(socketName: String, webSocketDebuggerUrl: String, script: String) = makeRequest<T>(
+    inline fun <reified T> evaluateScript(
+        socketName: String,
+        webSocketDebuggerUrl: String,
+        script: String
+    ) = makeRequest<T>(
         socketName = socketName,
         webSocketDebuggerUrl = webSocketDebuggerUrl,
         method = "Runtime.evaluate",
@@ -111,13 +126,25 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
         ),
     )
 
-    inline fun <reified T> makeRequest(socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T {
+    inline fun <reified T> makeRequest(
+        socketName: String,
+        webSocketDebuggerUrl: String,
+        method: String,
+        params: Any?
+    ): T {
         val resultTypeReference = object : TypeReference<T>() {}
         return makeRequest(resultTypeReference, socketName, webSocketDebuggerUrl, method, params)
     }
 
-    fun <T> makeRequest(resultTypeReference: TypeReference<T>, socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T {
-        val request = json.writeValueAsString(mapOf("id" to 1, "method" to method, "params" to params))
+    fun <T> makeRequest(
+        resultTypeReference: TypeReference<T>,
+        socketName: String,
+        webSocketDebuggerUrl: String,
+        method: String,
+        params: Any?
+    ): T {
+        val request =
+            json.writeValueAsString(mapOf("id" to 1, "method" to method, "params" to params))
         val url = webSocketDebuggerUrl.replace("ws", "http").toHttpUrl().newBuilder()
             .host("localabstract.$socketName.adb")
             .build()
@@ -167,15 +194,20 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
     private fun getWebViewInfos(socketName: String): List<WebViewInfo> {
         val url = "http://localabstract.$socketName.adb/json"
 
-        val call = okhttp.newCall(Request.Builder()
-            .url(url)
-            .header("Host", "localhost:9222") // Expected by devtools server
-            .build())
+        val call = okhttp.newCall(
+            Request.Builder()
+                .url(url)
+                .header("Host", "localhost:9222") // Expected by devtools server
+                .build()
+        )
 
         val response = try {
             call.execute()
         } catch (e: IOException) {
-            logger.error("IOException while getting WebView info from $url. Defaulting to empty list.", e)
+            logger.error(
+                "IOException while getting WebView info from $url. Defaulting to empty list.",
+                e
+            )
             return emptyList()
         }
 
@@ -204,7 +236,10 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
                 )
             }.filter { it.attached && it.visible && !it.empty }
         } catch (e: JsonProcessingException) {
-            throw IllegalStateException("Failed to parse WebView chrome dev tools response:\n$body", e)
+            throw IllegalStateException(
+                "Failed to parse WebView chrome dev tools response:\n$body",
+                e
+            )
         }
     }
 
@@ -216,6 +251,14 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
         return response.allOutput.trim().lines().mapNotNull { line ->
             line.split(Regex("\\s+")).lastOrNull()?.takeIf { it.startsWith(WEB_VIEW_SOCKET_PREFIX) }?.substring(1)
         }.toSet()
+    }
+    fun isJson(string: String): Boolean {
+        return try {
+            JsonParser.parseString(string)
+            true
+        } catch (e: JsonSyntaxException) {
+            false
+        }
     }
 
     companion object {

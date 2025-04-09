@@ -21,7 +21,7 @@ package maestro
 
 data class TreeNode(
     val attributes: MutableMap<String, String> = mutableMapOf(),
-    val children: List<TreeNode> = emptyList(),
+    var children: List<TreeNode> = emptyList(),
     val clickable: Boolean? = null,
     val enabled: Boolean? = null,
     val focused: Boolean? = null,
