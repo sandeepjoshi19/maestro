@@ -85,7 +85,7 @@ class AndroidDriver(
     private var proxySet = false
     private var closed = false
 
-    private var chromeDevToolsEnabled = false
+    private var chromeDevToolsEnabled = true
 
     override fun name(): String {
         return "Android Device ($dadb)"
@@ -842,7 +842,7 @@ class AndroidDriver(
     }
 
     override fun setAndroidChromeDevToolsEnabled(enabled: Boolean) {
-        this.chromeDevToolsEnabled = enabled
+        this.chromeDevToolsEnabled = true
     }
 
     fun setDeviceLocale(country: String, language: String): Int {

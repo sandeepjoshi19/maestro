@@ -1,18 +1,27 @@
 package maestro.android.chromedevtools
 
+import com.google.gson.Gson
 import dadb.Dadb
 import maestro.Bounds
 import maestro.TreeNode
 import maestro.UiElement
 import maestro.UiElement.Companion.toUiElementOrNull
+import maestro.drivers.AndroidDriver
+import org.slf4j.LoggerFactory
 
 object AndroidWebViewHierarchy {
+    private val LOGGER = LoggerFactory.getLogger(AndroidWebViewHierarchy::class.java)
 
     fun augmentHierarchy(dadb: Dadb, baseHierarchy: TreeNode, chromeDevToolsEnabled: Boolean): TreeNode {
+        LOGGER.info("HAS WEBVIEW: ${hasWebView(baseHierarchy)}")
         if (!chromeDevToolsEnabled) return baseHierarchy
         if (!hasWebView(baseHierarchy)) return baseHierarchy
         // TODO: Adapt to handle chrome in the same way
-        val webViewHierarchy = DadbChromeDevToolsClient(dadb).getWebViewTreeNodes()
+        LOGGER.info("GETTING WEBVIEW HIERARCHY")
+        val webViewNode = findWebViewNodes(baseHierarchy)
+        val  bounds = webViewNode?.toUiElementOrNull()?.bounds
+        val webViewHierarchy = DadbChromeDevToolsClient(dadb).getWebViewTreeNodes(bounds)
+        LOGGER.info("MERGING HIERARCHY")
         val merged = mergeHierarchies(baseHierarchy, webViewHierarchy)
         return merged
     }
@@ -30,25 +39,53 @@ object AndroidWebViewHierarchy {
     }
 
     fun mergeHierarchies(baseHierarchy: TreeNode, webViewHierarchy: List<TreeNode>): TreeNode {
+        LOGGER.info("BASE")
+        LOGGER.info("BASE: "+Gson().toJson(baseHierarchy))
+        LOGGER.info("WEBVIEW")
+        LOGGER.info("WEBVIEW: "+Gson().toJson(webViewHierarchy))
+
         if (webViewHierarchy.isEmpty()) return baseHierarchy
-        val newNodes = mutableListOf<TreeNode>()
-        val baseNodes = baseHierarchy.aggregate().mapNotNull { it.toUiElementOrNull() }
-        // We can use a quadtree here if this is too slow
-        val webViewNodes = webViewHierarchy.flatMap { it.aggregate() }.filter {
-            it.attributes["text"]?.isNotBlank() == true
-                    || it.attributes["resource-id"]?.isNotBlank() == true
-                    || it.attributes["hintText"]?.isNotBlank() == true
-                    || it.attributes["accessibilityText"]?.isNotBlank() == true
-        }.mapNotNull { it.toUiElementOrNull() }.filter {
-            it.bounds.width > 0 && it.bounds.height > 0
+
+        val webViewNode = findWebViewNodes(baseHierarchy)
+        if (webViewNode != null) {
+            webViewNode.children = webViewHierarchy
         }
-        webViewNodes.forEach { webViewNode ->
-            if (!baseNodes.any { webViewNode.mergeWith(it) }) {
-                newNodes.add(webViewNode.treeNode)
-            }
+
+        return baseHierarchy
+
+//        val newNodes = mutableListOf<TreeNode>()
+//        val baseNodes = baseHierarchy.aggregate().mapNotNull { it.toUiElementOrNull() }
+//        // We can use a quadtree here if this is too slow
+//        val webViewNodes = webViewHierarchy.flatMap { it.aggregate() }.filter {
+//            it.attributes["text"]?.isNotBlank() == true
+//                    || it.attributes["resource-id"]?.isNotBlank() == true
+//                    || it.attributes["hintText"]?.isNotBlank() == true
+//                    || it.attributes["accessibilityText"]?.isNotBlank() == true
+//        }.mapNotNull { it.toUiElementOrNull() }.filter {
+//            it.bounds.width > 0 && it.bounds.height > 0
+//        }
+//        webViewNodes.forEach { webViewNode ->
+//            if (!baseNodes.any { webViewNode.mergeWith(it) }) {
+//                newNodes.add(webViewNode.treeNode)
+//            }
+//        }
+//        if (newNodes.isEmpty()) return baseHierarchy
+//        return TreeNode(children = listOf(baseHierarchy) + newNodes)
+    }
+
+    private fun findWebViewNodes(node: TreeNode?): TreeNode? {
+        if(node == null){
+            return null
         }
-        if (newNodes.isEmpty()) return baseHierarchy
-        return TreeNode(children = listOf(baseHierarchy) + newNodes)
+
+        if (node.attributes["class"] == "android.webkit.WebView"){
+            return node
+        }
+
+        for ( child in node.children ){
+            return node.children.firstNotNullOfOrNull { findWebViewNodes(it) }
+        }
+        return null
     }
 
     private fun UiElement.mergeWith(base: UiElement): Boolean {

@@ -153,7 +153,7 @@ object ViewHierarchy {
                         child,
                         serializer, i,
                         displayRect,
-                        insideWebView || child.className == "android.webkit.WebView"
+                        insideWebView
                     )
                     child.recycle()
                 } else {

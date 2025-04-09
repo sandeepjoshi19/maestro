@@ -44,10 +44,15 @@
           bounds: getNodeBounds(node),
       }
 
-      if (!!node.id || !!node.ariaLabel || !!node.name || !!node.title || !!node.htmlFor || !!node.attributes['data-testid']) {
+      if (!!node.id || !!node.ariaLabel || !!node.name || !!node.title || !!node.htmlFor || !!node.attributes['data-testid'] || !!node.attributes['data-testid'] || !!node.attributes['aria-description']) {
         const title = typeof node.title === 'string' ? node.title : null
-        attributes['resource-id'] = node.id || node.ariaLabel || node.name || title || node.htmlFor || node.attributes['data-testid']?.value
+        attributes['resource-id'] = node.id || node.ariaLabel || node.name || title || node.htmlFor || node.attributes['data-testid']?.value || node.attributes['aria-description']?.value;
       }
+
+      if (!!node.attributes['aria-description']){
+        attributes['accessibilityText'] = node.attributes['aria-description']?.value
+      }
+
 
       if (node.tagName.toLowerCase() === 'body') {
         attributes['is-loading'] = isDocumentLoading()
@@ -67,6 +72,10 @@
 
     maestro.getContentDescription = () => {
         return traverse(document.body)
+    }
+
+    maestro.getContentDescription = () => {
+            return traverse(document.body)
     }
 
     // https://stackoverflow.com/a/5178132

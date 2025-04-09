@@ -2,6 +2,7 @@ package maestro.android.chromedevtools
 
 import dadb.AdbStream
 import dadb.Dadb
+import maestro.Maestro
 import okio.BufferedSink
 import okio.BufferedSource
 import okio.ByteString
@@ -326,18 +327,25 @@ fun main() {
     (Dadb.discover() ?: throw IllegalStateException("No devices found")).use { dadb ->
         measureTimeMillis {
             dadb.open("localabstract:chrome_devtools_remote").use { stream ->
-                DadbWebSocketClient(stream, "ws://localhost:9222/devtools/page/14").use { client ->
+                DadbWebSocketClient(stream, "ws://localhost:9222/devtools/page/0").use { client ->
                     client.connect()
+                    val script = Maestro::class.java.getResourceAsStream("/maestro-web.js")?.let {
+                        it.bufferedReader().use { br ->
+                            br.readText()
+                        }
+                    } ?: error("Could not read maestro web script")
+                   val updatedScript = "$script; maestro.viewportX = ${0}; maestro.viewportY = ${0}; maestro.viewportWidth = ${0}; maestro.viewportHeight = ${0}; window.maestro.getContentDescription();"
                     client.sendText("""
                         {
-                            "id": 1,
-                            "method": "DOMSnapshot.getSnapshot",
-                            "params": {
-                                "depth": -1
-                            }
+                          "id": 1,
+                          "method": "DOM.getDocument",
+                          "params": {
+                            "depth": -1,
+                            "pierce": true
+                          }
                         }
                     """.trimIndent())
-                    println(client.readFrame().payload.string(Charsets.UTF_8))
+                    //println(client.readFrame().payload.string(Charsets.UTF_8))
                 }
             }
         }.also { println(it) }

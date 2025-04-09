@@ -28,8 +28,8 @@ data class HttpResponse(
  *  )
  *
  *  val response = client.get("http://example.com/some/path?query=123")
- *  println("Status: ${response.statusLine}")
- *  println("Body: ${response.body.utf8()}")
+ *  //println("Status: ${response.statusLine}")
+ *  //println("Body: ${response.body.utf8()}")
  */
 class DadbHttpClient(
     private val dadb: Dadb,
@@ -66,6 +66,9 @@ class DadbHttpClient(
             sink.writeUtf8("GET $pathWithQuery HTTP/1.1\r\n")
             sink.writeUtf8("Connection: close\r\n")
             sink.writeUtf8("Host: $host:$port\r\n")
+            sink.writeUtf8("User-Agent: MyCustomClient/1.0\r\n")
+            sink.writeUtf8("Accept: */*\r\n")
+            sink.writeUtf8("Accept-Encoding: identity\r\n")
             sink.writeUtf8("\r\n")
             sink.flush()
 
@@ -97,7 +100,9 @@ class DadbHttpClient(
             } else {
                 source.readByteString()
             }
-
+            //println("Body")
+            //println(body)
+            //println("Done")
             return HttpResponse(
                 statusLine = statusLine,
                 statusCode = statusCode,
@@ -118,17 +123,18 @@ fun main() {
     dadb.use { d ->
         // Suppose there's a process listening for HTTP requests on localabstract:some_unix_socket
         val client = DadbHttpClient(d)
-
+//        val response = httpClient.get("http://localhost:9222/json")
+        //println("http called")
         // Make an HTTP GET request
-        val response = client.get("localabstract:webview_devtools_remote_5664", "http://localhost/json")
+        val response = client.get("localabstract:chrome_devtools_remote", "http://localhost:9222/json")
 
-        println("Status line: ${response.statusLine}")
-        println("Status code: ${response.statusCode}")
-        println("Headers:")
+        //println("Status line: ${response.statusLine}")
+        //println("Status code: ${response.statusCode}")
+        //println("Headers:")
         response.headers.forEach { (k, v) ->
-            println("  $k: $v")
+            //println("  $k: $v")
         }
-        println("Body:")
-        println(response.body.utf8())
+        //println("Body:")
+        //println(response.body.utf8())
     }
 }
