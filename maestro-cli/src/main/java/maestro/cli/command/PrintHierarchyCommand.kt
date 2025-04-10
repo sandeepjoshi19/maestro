@@ -21,6 +21,7 @@ package maestro.cli.command
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import maestro.TreeNode
 import maestro.cli.App
 import maestro.cli.DisableAnsiMixin
 import maestro.cli.ShowHelpMixin
@@ -61,6 +62,20 @@ class PrintHierarchyCommand : Runnable {
     )
     private var androidWebViewHierarchy: String? = null
 
+    @CommandLine.Option(
+        names = ["--reinstall-driver"],
+        description = ["[Beta] Reinstalls xctestrunner driver before running the test. Set to false if the driver shouldn't be reinstalled"],
+        hidden = true
+    )
+    private var reinstallDriver: Boolean = true
+
+    @CommandLine.Option(
+        names = ["--compact"],
+        description = ["[Beta] Remove empty values to make the output json smaller"],
+        hidden = false
+    )
+    private var compact: Boolean = true
+
     override fun run() {
         println("StartTime: ${System.currentTimeMillis()}")
         val startTime = System.currentTimeMillis()
@@ -78,6 +93,7 @@ class PrintHierarchyCommand : Runnable {
             driverHostPort = parent?.port,
             deviceId = parent?.deviceId,
             platform = parent?.platform,
+            reinstallDriver = reinstallDriver,
             isStudio = false
         ) { session ->
             session.maestro.setAndroidChromeDevToolsEnabled(androidWebViewHierarchy == "devtools")
@@ -116,5 +132,23 @@ class PrintHierarchyCommand : Runnable {
 //            println("Time taken In seconds: ${(endTime - startTime)} seconds")
             Thread.currentThread().join()
         }
+    }
+
+    private fun removeEmptyValues(tree: TreeNode?): TreeNode? {
+        if (tree == null) {
+            return null
+        }
+
+        return TreeNode(
+            attributes = tree.attributes.filter {
+                it.value != "" && it.value.toString() != "false"
+            }.toMutableMap(),
+            children = tree.children.map { removeEmptyValues(it) }.filterNotNull(),
+            checked = if(tree.checked == true) true else null,
+            clickable = if(tree.clickable == true) true else null,
+            enabled = if(tree.enabled == true) true else null,
+            focused = if(tree.focused == true) true else null,
+            selected = if(tree.selected == true) true else null,
+        )
     }
 }

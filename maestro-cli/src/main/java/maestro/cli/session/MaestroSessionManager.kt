@@ -59,6 +59,7 @@ object MaestroSessionManager {
         platform: String? = null,
         isStudio: Boolean = false,
         isHeadless: Boolean = isStudio,
+        reinstallDriver: Boolean = true,
         block: (MaestroSession) -> T,
     ): T {
         val selectedDevice = selectDevice(
@@ -97,6 +98,7 @@ object MaestroSessionManager {
             isStudio = isStudio,
             isHeadless = isHeadless,
             driverHostPort = driverHostPort,
+            reinstallDriver = reinstallDriver,
         )
         Runtime.getRuntime().addShutdownHook(thread(start = false) {
             heartbeatFuture.cancel(true)
@@ -154,6 +156,7 @@ object MaestroSessionManager {
         connectToExistingSession: Boolean,
         isStudio: Boolean,
         isHeadless: Boolean,
+        reinstallDriver: Boolean,
         driverHostPort: Int?,
     ): MaestroSession {
         println("ConnectToExistingSession: $connectToExistingSession")
@@ -170,6 +173,7 @@ object MaestroSessionManager {
                         selectedDevice.device.instanceId,
                         !connectToExistingSession,
                         driverHostPort,
+                        reinstallDriver,
                     )
 
                     Platform.WEB -> pickWebDevice(isStudio, isHeadless)
@@ -192,6 +196,7 @@ object MaestroSessionManager {
                     deviceId = selectedDevice.deviceId,
                     openDriver = !connectToExistingSession,
                     driverHostPort = driverHostPort ?: defaultXcTestPort,
+                    reinstallDriver = reinstallDriver,
                 ),
                 device = null,
             )
@@ -255,15 +260,16 @@ object MaestroSessionManager {
         deviceId: String?,
         openDriver: Boolean,
         driverHostPort: Int,
+        reinstallDriver: Boolean,
     ): Maestro {
         val device = PickDeviceInteractor.pickDevice(deviceId, driverHostPort)
-        return createIOS(device.instanceId, openDriver, driverHostPort)
+        return createIOS(device.instanceId, openDriver, driverHostPort, reinstallDriver)
     }
 
     private fun createAndroid(
         instanceId: String,
         openDriver: Boolean,
-        driverHostPort: Int?
+        driverHostPort: Int?,
     ): Maestro {
         val driver = AndroidDriver(
             dadb = Dadb
@@ -285,6 +291,7 @@ object MaestroSessionManager {
         deviceId: String,
         openDriver: Boolean,
         driverHostPort: Int?,
+        reinstallDriver: Boolean,
     ): Maestro {
 
         val xcTestInstaller = LocalXCTestInstaller(
@@ -292,11 +299,13 @@ object MaestroSessionManager {
             host = defaultXctestHost,
             defaultPort = driverHostPort ?: defaultXcTestPort,
             enableXCTestOutputFileLogging = true,
+            reinstallDriver = reinstallDriver,
         )
 
         val xcTestDriverClient = XCTestDriverClient(
             installer = xcTestInstaller,
             client = XCTestClient(defaultXctestHost, driverHostPort ?: defaultXcTestPort),
+            reinstallDriver = reinstallDriver,
         )
 
         val xcTestDevice = XCTestIOSDevice(
