@@ -53,8 +53,11 @@ data class WebViewInfo(
 )
 
 private data class WebViewResponse(
-    val description: String,
-    val webSocketDebuggerUrl: String,
+    val description: String?,
+    val title: String?,
+    val type: String?,
+    val url: String?,
+    val webSocketDebuggerUrl: String?,
 )
 
 private data class WebViewDescription(
@@ -70,6 +73,17 @@ private data class WebViewDescription(
 private data class DevToolsResponse<T>(
     val id: Int,
     val result: T,
+    val error: RpcError?
+)
+
+data class RpcError(
+    val code: Int?,
+    val message: String?
+)
+
+data class VisibilityResult(
+    val type: String,
+    val value: String
 )
 
 class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
