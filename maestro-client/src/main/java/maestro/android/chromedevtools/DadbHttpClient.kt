@@ -66,9 +66,6 @@ class DadbHttpClient(
             sink.writeUtf8("GET $pathWithQuery HTTP/1.1\r\n")
             sink.writeUtf8("Connection: close\r\n")
             sink.writeUtf8("Host: $host:$port\r\n")
-            sink.writeUtf8("User-Agent: MyCustomClient/1.0\r\n")
-            sink.writeUtf8("Accept: */*\r\n")
-            sink.writeUtf8("Accept-Encoding: identity\r\n")
             sink.writeUtf8("\r\n")
             sink.flush()
 
@@ -100,9 +97,6 @@ class DadbHttpClient(
             } else {
                 source.readByteString()
             }
-            //println("Body")
-            //println(body)
-            //println("Done")
             return HttpResponse(
                 statusLine = statusLine,
                 statusCode = statusCode,

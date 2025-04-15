@@ -1,12 +1,10 @@
 package maestro.android.chromedevtools
 
-import com.google.gson.Gson
 import dadb.Dadb
 import maestro.Bounds
 import maestro.TreeNode
 import maestro.UiElement
 import maestro.UiElement.Companion.toUiElementOrNull
-import maestro.drivers.AndroidDriver
 import org.slf4j.LoggerFactory
 
 object AndroidWebViewHierarchy {
@@ -35,14 +33,10 @@ object AndroidWebViewHierarchy {
     }
 
     private fun isWebView(node: TreeNode): Boolean {
-        return node.attributes["class"] == "android.webkit.WebView"
+        return node.attributes["class"] == "android.webkit.WebView" || node.attributes["accessibilityText"] == "Web View" || node.attributes["accessibilityText"]?.equals("WebView",true) == true
     }
 
     fun mergeHierarchies(baseHierarchy: TreeNode, webViewHierarchy: List<TreeNode>): TreeNode {
-        LOGGER.info("BASE")
-        LOGGER.info("BASE: "+Gson().toJson(baseHierarchy))
-        LOGGER.info("WEBVIEW")
-        LOGGER.info("WEBVIEW: "+Gson().toJson(webViewHierarchy))
 
         if (webViewHierarchy.isEmpty()) return baseHierarchy
 
