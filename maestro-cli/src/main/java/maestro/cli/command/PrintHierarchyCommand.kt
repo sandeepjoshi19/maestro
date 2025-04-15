@@ -71,10 +71,10 @@ class PrintHierarchyCommand : Runnable {
 
     @CommandLine.Option(
         names = ["--compact"],
-        description = ["[Beta] Remove empty values to make the output json smaller"],
+        description = ["Output in CSV format with element_num,depth,attributes,parent_num columns"],
         hidden = false
     )
-    private var compact: Boolean = true
+    private var compact: Boolean = false
 
     override fun run() {
         println("StartTime: ${System.currentTimeMillis()}")
@@ -131,6 +131,49 @@ class PrintHierarchyCommand : Runnable {
 //            val endTime = System.currentTimeMillis()
 //            println("Time taken In seconds: ${(endTime - startTime)} seconds")
             Thread.currentThread().join()
+        }
+    }
+
+    private fun processTreeToCSV(
+        node: TreeNode?,
+        depth: Int,
+        parentId: Int?,
+        nodeToId: Map<TreeNode, Int>,
+        csv: StringBuilder
+    ) {
+        if (node == null) return
+
+        val nodeId = nodeToId[node] ?: return
+
+        // Build attributes string
+        val attributesList = mutableListOf<String>()
+
+        // Add normal attributes
+        node.attributes.forEach { (key, value) ->
+            if (value.isNotEmpty() && value != "false") {
+                attributesList.add("$key=$value")
+            }
+        }
+
+        // Add boolean properties if true
+        if (node.clickable == true) attributesList.add("clickable=true")
+        if (node.enabled == true) attributesList.add("enabled=true")
+        if (node.focused == true) attributesList.add("focused=true")
+        if (node.checked == true) attributesList.add("checked=true")
+        if (node.selected == true) attributesList.add("selected=true")
+
+        // Join all attributes with "; "
+        val attributesString = attributesList.joinToString("; ")
+
+        // Escape quotes in the attributes string if needed
+        val escapedAttributes = attributesString.replace("\"", "\"\"")
+
+        // Add this node to CSV
+        csv.append("$nodeId,$depth,\"$escapedAttributes\",${parentId ?: ""}\n")
+
+        // Process children
+        node.children.forEach { child ->
+            processTreeToCSV(child, depth + 1, nodeId, nodeToId, csv)
         }
     }
 
