@@ -304,9 +304,9 @@ class Orchestra(
             is SwipeCommand -> swipeCommand(command)
             is AssertCommand -> assertCommand(command)
             is AssertConditionCommand -> assertConditionCommand(command)
-            is AssertNoDefectsWithAICommand -> assertNoDefectsWithAICommand(command)
-            is AssertWithAICommand -> assertWithAICommand(command)
-            is ExtractTextWithAICommand -> extractTextWithAICommand(command)
+            is AssertNoDefectsWithAICommand -> assertNoDefectsWithAICommand(command, maestroCommand)
+            is AssertWithAICommand -> assertWithAICommand(command, maestroCommand)
+            is ExtractTextWithAICommand -> extractTextWithAICommand(command, maestroCommand)
             is InputTextCommand -> inputTextCommand(command)
             is InputRandomCommand -> inputTextRandomCommand(command)
             is LaunchAppCommand -> launchAppCommand(command)
@@ -386,10 +386,12 @@ class Orchestra(
         return false
     }
 
-    private fun assertNoDefectsWithAICommand(command: AssertNoDefectsWithAICommand): Boolean = runBlocking {
+    private fun assertNoDefectsWithAICommand(command: AssertNoDefectsWithAICommand, maestroCommand: MaestroCommand): Boolean = runBlocking {
         if (AIPredictionEngine == null) {
             throw MaestroException.CloudApiKeyNotAvailable("`MAESTRO_CLOUD_API_KEY` is not available. Did you export MAESTRO_CLOUD_API_KEY?")
         }
+
+        val metadata = getMetadata(maestroCommand)
 
         val imageData = Buffer()
         maestro.takeScreenshot(imageData, compressed = false)
@@ -402,10 +404,14 @@ class Orchestra(
             onCommandGeneratedOutput(command, defects, imageData)
 
             val word = if (defects.size == 1) "defect" else "defects"
+            val reasoning = "Found ${defects.size} possible $word:\n${defects.joinToString("\n") { "- ${it.reasoning}" }}"
+            
+            updateMetadata(maestroCommand, metadata.copy(aiReasoning = reasoning))
+            
+
             throw MaestroException.AssertionFailure(
                 message = """
-                    |Found ${defects.size} possible $word:
-                    ${defects.joinToString("\n") { "| - ${it.reasoning}" }}
+                    |$reasoning
                     |
                     """.trimMargin(),
                 hierarchyRoot = maestro.viewHierarchy().root,
@@ -415,14 +421,15 @@ class Orchestra(
         false
     }
 
-    private fun assertWithAICommand(command: AssertWithAICommand): Boolean = runBlocking {
+    private fun assertWithAICommand(command: AssertWithAICommand, maestroCommand: MaestroCommand): Boolean = runBlocking {
         if (AIPredictionEngine == null) {
             throw MaestroException.CloudApiKeyNotAvailable("`MAESTRO_CLOUD_API_KEY` is not available. Did you export MAESTRO_CLOUD_API_KEY?")
         }
 
+        val metadata = getMetadata(maestroCommand)
+
         val imageData = Buffer()
         maestro.takeScreenshot(imageData, compressed = false)
-
         val defect = AIPredictionEngine.performAssertion(
             screen = imageData.copy().readByteArray(),
             assertion = command.assertion,
@@ -430,10 +437,13 @@ class Orchestra(
 
         if (defect != null) {
             onCommandGeneratedOutput(command, listOf(defect), imageData)
+            
+            val reasoning = "Assertion \"${command.assertion}\" failed:\n${defect.reasoning}"
+            updateMetadata(maestroCommand, metadata.copy(aiReasoning = reasoning))
+
             throw MaestroException.AssertionFailure(
                 message = """
-                    |Assertion "${command.assertion}" is false.
-                    |Reasoning: ${defect.reasoning}
+                    |$reasoning
                     """.trimMargin(),
                 hierarchyRoot = maestro.viewHierarchy().root,
             )
@@ -442,10 +452,12 @@ class Orchestra(
         false
     }
 
-    private fun extractTextWithAICommand(command: ExtractTextWithAICommand): Boolean = runBlocking {
+    private fun extractTextWithAICommand(command: ExtractTextWithAICommand, maestroCommand: MaestroCommand): Boolean = runBlocking {
         if (AIPredictionEngine == null) {
             throw MaestroException.CloudApiKeyNotAvailable("`MAESTRO_CLOUD_API_KEY` is not available. Did you export MAESTRO_CLOUD_API_KEY?")
         }
+
+        val metadata = getMetadata(maestroCommand)
 
         val imageData = Buffer()
         maestro.takeScreenshot(imageData, compressed = false)
@@ -454,6 +466,9 @@ class Orchestra(
             query = command.query,
         )
 
+        updateMetadata(maestroCommand, metadata.copy(
+            aiReasoning = "Query: \"${command.query}\"\nExtracted text: $text"
+        ))
         jsEngine.putEnv(command.outputVariable, text)
 
         false
@@ -1310,6 +1325,7 @@ class Orchestra(
         val evaluatedCommand: MaestroCommand? = null,
         val logMessages: List<String> = emptyList(),
         val insight: Insight = Insight("", Insight.Level.NONE),
+        val aiReasoning: String? = null
     )
 
     enum class ErrorResolution {
