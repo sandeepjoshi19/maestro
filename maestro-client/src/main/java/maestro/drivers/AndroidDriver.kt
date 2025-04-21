@@ -654,7 +654,18 @@ class AndroidDriver(
         val installedPackages = installedPackages()
         when {
             installedPackages.contains("com.android.chrome") -> {
-                dadb.shell("am start -a android.intent.action.VIEW -d \"$link\" com.android.chrome")
+                dadb.shell(
+                    """
+                    am start \
+                      -a android.intent.action.VIEW \
+                      -d "$link" \
+                      -c android.intent.category.BROWSABLE \
+                      -n com.android.chrome/com.google.android.apps.chrome.Main \
+                      --es com.android.browser.application_id com.flipkart.android \
+                      --ez create_new_tab false
+                    """.trimIndent()
+                )
+
             }
 
             installedPackages.contains("org.mozilla.firefox") -> {
