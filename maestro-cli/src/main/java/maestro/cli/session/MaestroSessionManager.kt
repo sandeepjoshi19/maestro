@@ -70,6 +70,7 @@ object MaestroSessionManager {
         isStudio: Boolean = false,
         isHeadless: Boolean = isStudio,
         reinstallDriver: Boolean = true,
+        prebuiltIOSRunner: Boolean,
         block: (MaestroSession) -> T,
     ): T {
         val selectedDevice = selectDevice(
@@ -110,6 +111,7 @@ object MaestroSessionManager {
             isHeadless = isHeadless,
             driverHostPort = driverHostPort,
             reinstallDriver = reinstallDriver,
+            prebuiltIOSRunner = prebuiltIOSRunner
         )
         Runtime.getRuntime().addShutdownHook(thread(start = false) {
             heartbeatFuture.cancel(true)
@@ -187,6 +189,7 @@ object MaestroSessionManager {
         isStudio: Boolean,
         isHeadless: Boolean,
         reinstallDriver: Boolean,
+        prebuiltIOSRunner: Boolean,
         driverHostPort: Int?,
     ): MaestroSession {
         println("ConnectToExistingSession: $connectToExistingSession")
@@ -204,7 +207,8 @@ object MaestroSessionManager {
                         !connectToExistingSession,
                         driverHostPort,
                         reinstallDriver,
-                        selectedDevice.device.deviceType
+                        deviceType = selectedDevice.device.deviceType,
+                        prebuiltRunner = prebuiltIOSRunner
                     )
 
                     Platform.WEB -> pickWebDevice(isStudio, isHeadless)
@@ -228,6 +232,7 @@ object MaestroSessionManager {
                     openDriver = !connectToExistingSession,
                     driverHostPort = driverHostPort ?: defaultXcTestPort,
                     reinstallDriver = reinstallDriver,
+                    isStudio = isStudio
                 ),
                 device = null,
             )
@@ -292,6 +297,7 @@ object MaestroSessionManager {
         openDriver: Boolean,
         driverHostPort: Int,
         reinstallDriver: Boolean,
+        isStudio: Boolean
     ): Maestro {
         val device = PickDeviceInteractor.pickDevice(deviceId, driverHostPort)
         return createIOS(
@@ -299,7 +305,8 @@ object MaestroSessionManager {
             openDriver,
             driverHostPort,
             reinstallDriver,
-            device.deviceType
+            deviceType = device.deviceType,
+            prebuiltRunner = isStudio
         )
     }
 
@@ -329,6 +336,7 @@ object MaestroSessionManager {
         openDriver: Boolean,
         driverHostPort: Int?,
         reinstallDriver: Boolean,
+        prebuiltRunner: Boolean,
         deviceType: Device.DeviceType,
     ): Maestro {
 
@@ -352,7 +360,7 @@ object MaestroSessionManager {
             }
             Device.DeviceType.SIMULATOR -> {
                 IOSDriverConfig(
-                    prebuiltRunner = true,
+                    prebuiltRunner = prebuiltRunner,
                     sourceDirectory =  "driver-iPhoneSimulator",
                     context = Context.CLI
                 )
