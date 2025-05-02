@@ -83,6 +83,13 @@ class PrintHierarchyCommand : Runnable {
     )
     private var compact: Boolean = false
 
+    @CommandLine.Option(
+        names = ["--device-index"],
+        description = ["The index of the device to run the test on"],
+        hidden = true
+    )
+    private var deviceIndex: Int? = null
+
     override fun run() {
         println("StartTime: ${System.currentTimeMillis()}")
         val startTime = System.currentTimeMillis()
@@ -102,7 +109,7 @@ class PrintHierarchyCommand : Runnable {
             deviceId = parent?.deviceId,
             platform = parent?.platform,
             reinstallDriver = reinstallDriver,
-            prebuiltIOSRunner = false,
+            deviceIndex = deviceIndex,
             isStudio = false
         ) { session ->
             session.maestro.setAndroidChromeDevToolsEnabled(androidWebViewHierarchy == "devtools")
