@@ -161,7 +161,7 @@ class TestSuiteInteractor(
         var flowName: String = flowFile.nameWithoutExtension
         var flowStatus: FlowStatus
         var errorMessage: String? = null
-
+        logger.info("Flow Started: $flowName")
         val debugOutput = FlowDebugOutput()
         val aiOutput = FlowAIOutput(
             flowName = flowFile.nameWithoutExtension,
@@ -193,7 +193,7 @@ class TestSuiteInteractor(
                         }
                     },
                     onCommandFailed = { _, command, e ->
-                        logger.info("${shardPrefix}${command.description()} FAILED")
+                        logger.error("${shardPrefix}${command.description()} FAILED")
                         if (e is MaestroException) debugOutput.exception = e
                         debugOutput.commands[command]?.let {
                             it.status = CommandStatus.FAILED
@@ -205,13 +205,13 @@ class TestSuiteInteractor(
                         Orchestra.ErrorResolution.FAIL
                     },
                     onCommandSkipped = { _, command ->
-                        logger.info("${shardPrefix}${command.description()} SKIPPED")
+                        logger.warn("${shardPrefix}${command.description()} SKIPPED")
                         debugOutput.commands[command]?.let {
                             it.status = CommandStatus.SKIPPED
                         }
                     },
                     onCommandWarned = { _, command ->
-                        logger.info("${shardPrefix}${command.description()} WARNED")
+                        logger.warn("${shardPrefix}${command.description()} WARNED")
                         debugOutput.commands[command]?.apply {
                             status = CommandStatus.WARNED
                         }
@@ -233,7 +233,7 @@ class TestSuiteInteractor(
                         )
                     },
                     onCommandUnexecuted = {command, executeJs ->
-                        logger.info("${command.description()} UNEXECUTED")
+                        logger.warn("${command.description()} UNEXECUTED")
                         debugOutput.commands[command]?.let {
                             it.status = CommandStatus.UNEXECUTED
                             it.calculateDuration()
@@ -261,7 +261,6 @@ class TestSuiteInteractor(
             }
         }
         val flowDuration = TimeUtils.durationInSeconds(flowTimeMillis)
-
         TestDebugReporter.saveFlow(
             flowName = flowName,
             debugOutput = debugOutput,
@@ -279,7 +278,7 @@ class TestSuiteInteractor(
                 error = debugOutput.exception?.message,
             )
         )
-
+        logger.info("Flow Ended: $flowName")
         return Pair(
             first = TestExecutionSummary.FlowResult(
                 name = flowName,
