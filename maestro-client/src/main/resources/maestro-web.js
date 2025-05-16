@@ -1,5 +1,5 @@
 (function ( maestro ) {
-    const INVALID_TAGS = new Set(['noscript', 'script', 'br', 'img', 'svg', 'g', 'path', 'style'])
+    const INVALID_TAGS = new Set(['noscript', 'script', 'br' , 'g', 'path', 'style'])
 
     const isInvalidTag = (node) => {
         return INVALID_TAGS.has(node.tagName.toLowerCase())
@@ -49,8 +49,8 @@
         attributes['resource-id'] = node.id || node.ariaLabel || node.name || title || node.htmlFor || node.attributes['data-testid']?.value || node.attributes['aria-description']?.value;
       }
 
-      if (!!node.attributes['aria-description']){
-        attributes['accessibilityText'] = node.attributes['aria-description']?.value
+      if (!!node.attributes['aria-description'] || !!node.attributes['data-testid']){
+        attributes['accessibilityText'] = node.attributes['aria-description']?.value || node.attributes['data-testid']?.value
       }
 
 
