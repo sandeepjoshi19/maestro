@@ -286,13 +286,13 @@ class Orchestra(
             is TapOnElementCommand -> {
                 tapOnElement(
                     command = command,
-                    retryIfNoChange = command.retryIfNoChange ?: true,
+                    retryIfNoChange = command.retryIfNoChange ?: false,
                     waitUntilVisible = command.waitUntilVisible ?: false,
                     config = config
                 )
             }
 
-            is TapOnPointCommand -> tapOnPoint(command, command.retryIfNoChange ?: true)
+            is TapOnPointCommand -> tapOnPoint(command, command.retryIfNoChange ?: false)
             is TapOnPointV2Command -> tapOnPointV2Command(command)
             is BackPressCommand -> backPressCommand()
             is HideKeyboardCommand -> hideKeyboardCommand()
@@ -1052,7 +1052,7 @@ class Orchestra(
             maestro.tapOnRelative(
                 percentX = percentX,
                 percentY = percentY,
-                retryIfNoChange = command.retryIfNoChange ?: true,
+                retryIfNoChange = command.retryIfNoChange ?: false,
                 longPress = command.longPress ?: false,
                 tapRepeat = command.repeat,
                 waitToSettleTimeoutMs = command.waitToSettleTimeoutMs
@@ -1066,7 +1066,7 @@ class Orchestra(
             maestro.tap(
                 x = x,
                 y = y,
-                retryIfNoChange = command.retryIfNoChange ?: true,
+                retryIfNoChange = command.retryIfNoChange ?: false,
                 longPress = command.longPress ?: false,
                 tapRepeat = command.repeat,
                 waitToSettleTimeoutMs = command.waitToSettleTimeoutMs
