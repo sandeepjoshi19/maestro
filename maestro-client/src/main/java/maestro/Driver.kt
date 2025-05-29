@@ -29,6 +29,8 @@ interface Driver {
 
     fun open()
 
+    fun startInstrumentationSession()
+
     fun close()
 
     fun deviceInfo(): DeviceInfo
@@ -104,4 +106,8 @@ interface Driver {
     fun setAirplaneMode(enabled: Boolean)
 
     fun setAndroidChromeDevToolsEnabled(enabled: Boolean) = Unit
+
+    fun isActiveNow(): Boolean
+
+    fun makeNewSession()
 }

@@ -61,6 +61,10 @@ class IOSDriver(
         }
     }
 
+    override fun startInstrumentationSession() {
+        TODO("Not yet implemented")
+    }
+
     override fun close() {
         metrics.measured("close") {
             if (proxySet) {
@@ -501,6 +505,14 @@ class IOSDriver(
 
     override fun setAirplaneMode(enabled: Boolean) {
         LOGGER.warn("Airplane mode is not available on iOS simulators")
+    }
+
+    override fun isActiveNow(): Boolean {
+        return true
+    }
+
+    override fun makeNewSession() {
+        TODO("Not yet implemented")
     }
 
     private fun addMediaToDevice(mediaFile: File) {

@@ -1,5 +1,6 @@
 package maestro.cli.runner
 
+import dadb.Dadb
 import maestro.Maestro
 import maestro.MaestroException
 import maestro.cli.CliError
@@ -57,6 +58,7 @@ class TestSuiteInteractor(
         if (executionPlan.flowsToRun.isEmpty() && executionPlan.sequence.flows.isEmpty()) {
             throw CliError("${shardPrefix}No flows returned from the tag filter used")
         }
+
 
         val flowResults = mutableListOf<TestExecutionSummary.FlowResult>()
 
@@ -157,6 +159,14 @@ class TestSuiteInteractor(
         // TODO(bartekpacia): merge TestExecutionSummary with AI suggestions
         //  (i.e. consider them also part of the test output)
         //  See #1973
+
+        if (!maestro.driver.isActiveNow()){
+            println("Session was disconnected")
+            maestro.driver.makeNewSession()
+            maestro.driver.startInstrumentationSession()
+        } else{
+            println("Session was connected")
+        }
 
         var flowName: String = flowFile.nameWithoutExtension
         var flowStatus: FlowStatus
