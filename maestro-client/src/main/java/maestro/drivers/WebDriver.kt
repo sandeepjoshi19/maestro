@@ -79,6 +79,10 @@ class WebDriver(
         }
     }
 
+    override fun startInstrumentationSession() {
+        TODO("Not yet implemented")
+    }
+
     private fun ensureOpen(): org.openqa.selenium.WebDriver {
         return seleniumDriver ?: error("Driver is not open")
     }
@@ -472,6 +476,14 @@ class WebDriver(
 
     override fun setAirplaneMode(enabled: Boolean) {
         // Do nothing
+    }
+
+    override fun isActiveNow(): Boolean {
+        return true
+    }
+
+    override fun makeNewSession() {
+        TODO("Not yet implemented")
     }
 
     companion object {

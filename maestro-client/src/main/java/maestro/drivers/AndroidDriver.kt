@@ -46,8 +46,11 @@ import okio.*
 import org.slf4j.LoggerFactory
 import org.w3c.dom.Element
 import org.w3c.dom.Node
+import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
+import java.io.InputStreamReader
+import java.net.ServerSocket
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -59,7 +62,7 @@ import kotlin.io.use
 private const val DefaultDriverHostPort = 7001
 
 class AndroidDriver(
-    private val dadb: Dadb,
+    private var dadb: Dadb,
     hostPort: Int? = null,
     private var emulatorName: String = "",
     private val metricsProvider: Metrics = MetricsProvider.getInstance(),
@@ -69,10 +72,10 @@ class AndroidDriver(
 
     private val metrics = metricsProvider.withPrefix("maestro.driver").withTags(mapOf("platform" to "android", "emulatorName" to emulatorName))
 
-    private val channel = ManagedChannelBuilder.forAddress("localhost", this.hostPort)
+    private var channel = ManagedChannelBuilder.forAddress("localhost", this.hostPort)
         .usePlaintext()
         .build()
-    private val blockingStub = MaestroDriverGrpc.newBlockingStub(channel)
+    private var blockingStub = MaestroDriverGrpc.newBlockingStub(channel)
     private val blockingStubWithTimeout get() = blockingStub.withDeadlineAfter(120, TimeUnit.SECONDS)
     private val asyncStub = MaestroDriverGrpc.newStub(channel)
     private val documentBuilderFactory = DocumentBuilderFactory.newInstance()
@@ -85,6 +88,68 @@ class AndroidDriver(
         return "Android Device ($dadb)"
     }
 
+    override fun isActiveNow(): Boolean{
+        println(emulatorName)
+        Dadb.list()
+            .forEach { println(it.toString()) }
+        return Dadb.list().any { it.toString() == emulatorName }
+    }
+
+    override fun makeNewSession(){
+        println(dadb)
+        val headspinToken = System.getenv("HEADSPIN_TOKEN");
+        val headspinDevice = System.getenv("HEADSPIN_DEVICE")
+        val process = Runtime.getRuntime().exec("hs connect -t $headspinToken $headspinDevice")
+        val output = process.inputStream.bufferedReader().readText()
+        println(output)
+        startVPNsession(headspinToken,headspinDevice)
+        dadb = Dadb
+            .list()
+            .find { it.toString() == emulatorName }
+                    ?: error("Unable to find device with id $emulatorName")
+
+        println("Session was created: $dadb")
+        channel = ManagedChannelBuilder.forAddress("localhost", this.hostPort)
+            .usePlaintext()
+            .build()
+        println("Channel is created")
+        blockingStub = MaestroDriverGrpc.newBlockingStub(channel)
+        println("Stub is created")
+    }
+
+    fun startVPNsession(headspinUserToken: String, deviceName: String){
+        val enableVPN = System.getenv("ENABLE_VPN");
+        println("Enable VPN: ${enableVPN.equals("true",true)}")
+        if (!enableVPN.equals("true",true)){
+            return
+        }
+        val fullCommand = arrayOf(
+            "/bin/bash", "-lc",
+            "hs session start capture --json -t \"$headspinUserToken\" \"$deviceName\""
+        )
+
+        try {
+            val process = Runtime.getRuntime().exec(fullCommand)
+            val output = buildString {
+                append(process.inputStream.bufferedReader().use { it.readText() })
+                append(process.errorStream.bufferedReader().use { it.readText() })
+            }.trim()
+
+            val exitCode = process.waitFor()
+            if (exitCode != 0) {
+                System.err.println("Command failed with exit code $exitCode")
+                System.err.println(output)
+                return
+            }
+
+            println("export SESSION_OUTPUT=\"$output\"")
+
+        } catch (e: Exception) {
+            System.err.println("Error executing command: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
     override fun open() {
         allocateForwarder()
         installMaestroApks()
@@ -93,6 +158,17 @@ class AndroidDriver(
         try {
             awaitLaunch()
         } catch (ignored: InterruptedException) {
+            instrumentationSession?.close()
+            return
+        }
+    }
+
+    override fun startInstrumentationSession() {
+        startInstrumentationSession(hostPort)
+        try {
+            awaitLaunch()
+        } catch (ignored: InterruptedException) {
+            println(ignored.stackTrace.toString())
             instrumentationSession?.close()
             return
         }
@@ -116,12 +192,14 @@ class AndroidDriver(
             instrumentationSession = dadb.openShell(instrumentationCommand)
 
             if (instrumentationSession.successfullyStarted()) {
+                println("Instrumentation Successfully started")
                 return
             }
 
             instrumentationSession?.close()
             Thread.sleep(100)
         }
+        println("Instrumentation was not Successfully started")
         throw AndroidInstrumentationSetupFailure("Maestro instrumentation could not be initialized")
     }
 
@@ -153,11 +231,12 @@ class AndroidDriver(
         while (System.currentTimeMillis() - startTime < getStartupTimeout()) {
             runCatching {
                 dadb.open("tcp:$hostPort").close()
+                println("Android Driver Stated on time")
                 return
             }
             Thread.sleep(100)
         }
-
+        println("Android Driver Not Stated on time")
         throw AndroidDriverTimeoutException("Maestro Android driver did not start up in time  ---  emulator [ ${emulatorName} ] & port  [ dadb.open( tcp:${hostPort} ) ]")
     }
 

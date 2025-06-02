@@ -29,6 +29,8 @@ interface Driver {
 
     fun open()
 
+    fun startInstrumentationSession()
+
     fun close()
 
     fun deviceInfo(): DeviceInfo
@@ -102,4 +104,8 @@ interface Driver {
     fun isAirplaneModeEnabled(): Boolean
 
     fun setAirplaneMode(enabled: Boolean)
+
+    fun isActiveNow(): Boolean
+
+    fun makeNewSession()
 }
