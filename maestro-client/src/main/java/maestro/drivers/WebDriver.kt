@@ -75,7 +75,7 @@ class WebDriver(
         }
 
         if (isStudio) {
-            seleniumDriver?.get("https://maestro.mobile.dev")
+            seleniumDriver?.get("https://msite-stage6.flipkart.com/search?q=tv&marketplace=FLIPKART")
         }
     }
 

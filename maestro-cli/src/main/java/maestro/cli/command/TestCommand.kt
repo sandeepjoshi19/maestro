@@ -50,6 +50,7 @@ import maestro.cli.auth.Auth
 import maestro.orchestra.error.ValidationError
 import maestro.orchestra.workspace.WorkspaceExecutionPlanner
 import maestro.orchestra.workspace.WorkspaceExecutionPlanner.ExecutionPlan
+import maestro.testenvironment.TestEnvironment
 import maestro.utils.isSingleFile
 import okio.sink
 import org.slf4j.LoggerFactory
@@ -201,6 +202,9 @@ class TestCommand : Callable<Int> {
     private val logger = LoggerFactory.getLogger(TestCommand::class.java)
 
     private fun isWebFlow(): Boolean {
+        if (testEnvironment == "web" || testEnvironment == "web_msite" ){
+            return true
+        }
         if (flowFiles.isSingleFile) {
             return flowFiles.first().isWebFlow()
         }
@@ -350,7 +354,7 @@ class TestCommand : Callable<Int> {
             teamId = appleTeamId,
             driverHostPort = driverHostPort,
             deviceId = deviceId,
-            platform = parent?.platform,
+            platform = getPlatformFromTestEnvironment(testEnvironment),
             isHeadless = headless,
             reinstallDriver = reinstallDriver,
         ) { session ->
@@ -382,6 +386,24 @@ class TestCommand : Callable<Int> {
                 }
             }
         }
+    }
+
+    fun getPlatformFromTestEnvironment( testEnvironment: String?): String ?{
+
+        if (testEnvironment?.isEmpty() == true){
+            return null
+        }
+        println(testEnvironment)
+        when (testEnvironment){
+            "android" -> return  "Android"
+            "android_msite" -> "Android"
+            "ios_msite" -> "iOS"
+            "ios" -> return "iOS"
+            "web" -> return "Web"
+            "web_msite" -> return "Web"
+            else -> return  null
+        }
+        return null
     }
 
     private fun selectPort(effectiveShards: Int): Int =

@@ -21,6 +21,17 @@ class ChromeSeleniumFactory(
         val driverService = ChromeDriverService.Builder()
             .withLogLevel(ChromiumDriverLogLevel.OFF)
             .build()
+        val mobileEmulation = mapOf(
+            "deviceMetrics" to mapOf(
+                "width" to 412,
+                "height" to 915,
+                "pixelRatio" to 3.0,
+            ),
+            "userAgent" to "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        )
+
+
+//        options.setExperimentalOption("mobileEmulation", mobileEmulation)
 
         return ChromeDriver(
             driverService,
@@ -28,11 +39,13 @@ class ChromeSeleniumFactory(
                 addArguments("--remote-allow-origins=*")
                 addArguments("--disable-search-engine-choice-screen")
                 addArguments("--lang=en")
-                if (isHeadless) {
-                    addArguments("--headless=new")
-                    addArguments("--window-size=1024,768")
-                    setExperimentalOption("detach", true)
-                }
+                addArguments("window-size=420,920")
+                setExperimentalOption("mobileEmulation", mobileEmulation)
+//                if (isHeadless) {
+//                    addArguments("--headless=new")
+//                    addArguments("--window-size=1024,768")
+//                    setExperimentalOption("detach", true)
+//                }
             }
         )
     }

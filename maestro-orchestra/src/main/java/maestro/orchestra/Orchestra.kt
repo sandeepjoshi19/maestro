@@ -1115,6 +1115,7 @@ class Orchestra(
         selector.testID
             ?.let {
                 if (maestro.getTestEnvironment() === TestEnvironment.ANDROID){
+                    println(REGEX_OPTIONS)
                     descriptions += "testID matching to text regex: $it"
                     filters += Filters.deepestMatchingElement(
                         Filters.textMatches(it.toRegexSafe(REGEX_OPTIONS))
@@ -1122,7 +1123,8 @@ class Orchestra(
                 }
                 else if(maestro.getTestEnvironment() === TestEnvironment.ANDROID_MSITE ||
                     maestro.getTestEnvironment() === TestEnvironment.IOS ||
-                    maestro.getTestEnvironment() === TestEnvironment.IOS_MSITE){
+                    maestro.getTestEnvironment() === TestEnvironment.IOS_MSITE ||
+                    maestro.getTestEnvironment() == TestEnvironment.WEB_MSITE ){
                     descriptions += "testID matching to idRegex: $it"
                     filters += Filters.deepestMatchingElement(
                         Filters.idMatches(it.toRegexSafe(REGEX_OPTIONS))

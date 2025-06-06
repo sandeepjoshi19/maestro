@@ -63,8 +63,10 @@ class Maestro(
         when(tesEnvironment){
             "android" -> this.tesEnvironment = TestEnvironment.ANDROID
             "android_msite" -> this.tesEnvironment = TestEnvironment.ANDROID_MSITE
+            "web_msite" -> this.tesEnvironment = TestEnvironment.WEB_MSITE
             "ios" -> this.tesEnvironment = TestEnvironment.IOS
             "ios_msite" -> this.tesEnvironment = TestEnvironment.IOS_MSITE
+            "web" -> this.tesEnvironment = TestEnvironment.WEB
         }
     }
 
