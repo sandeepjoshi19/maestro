@@ -30,9 +30,15 @@ object WorkspaceExecutionPlanner {
 
         if (input.isRegularFile) {
             validateFlowFile(input.first())
+            val workspaceConfig = if (config != null) {
+                YamlCommandReader.readWorkspaceConfig(config.absolute())
+            } else {
+                WorkspaceConfig()
+            }
             return ExecutionPlan(
                 flowsToRun = input.toList(),
                 sequence = FlowSequence(emptyList()),
+                workspaceConfig = workspaceConfig
             )
         }
 
@@ -145,10 +151,11 @@ object WorkspaceExecutionPlanner {
 
         val executionPlan = ExecutionPlan(
             flowsToRun = normalFlows,
-            FlowSequence(
+            sequence = FlowSequence(
                 flowsToRunInSequence,
                 workspaceConfig.executionOrder?.continueOnFailure
-            )
+            ),
+            workspaceConfig = workspaceConfig,
         )
 
         logger.info("Created execution plan: $executionPlan")
@@ -187,5 +194,6 @@ object WorkspaceExecutionPlanner {
     data class ExecutionPlan(
         val flowsToRun: List<Path>,
         val sequence: FlowSequence,
+        val workspaceConfig: WorkspaceConfig = WorkspaceConfig(),
     )
 }

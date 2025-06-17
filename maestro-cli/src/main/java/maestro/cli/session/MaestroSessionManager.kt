@@ -36,6 +36,8 @@ import maestro.utils.CliInsights
 import maestro.cli.util.ScreenReporter
 import maestro.drivers.AndroidDriver
 import maestro.drivers.IOSDriver
+import maestro.orchestra.WorkspaceConfig.PlatformConfiguration
+import maestro.orchestra.workspace.WorkspaceExecutionPlanner
 import org.slf4j.LoggerFactory
 import util.IOSDeviceType
 import util.XCRunnerCLIUtils
@@ -71,6 +73,7 @@ object MaestroSessionManager {
         isHeadless: Boolean = isStudio,
         reinstallDriver: Boolean = true,
         deviceIndex: Int? = null,
+        executionPlan: WorkspaceExecutionPlanner.ExecutionPlan? = null,
         block: (MaestroSession) -> T,
     ): T {
         val selectedDevice = selectDevice(
@@ -112,7 +115,7 @@ object MaestroSessionManager {
             isHeadless = isHeadless,
             driverHostPort = driverHostPort,
             reinstallDriver = reinstallDriver,
-            prebuiltIOSRunner = false
+            platformConfiguration = executionPlan?.workspaceConfig?.platform
         )
         Runtime.getRuntime().addShutdownHook(thread(start = false) {
             heartbeatFuture.cancel(true)
@@ -191,8 +194,8 @@ object MaestroSessionManager {
         isStudio: Boolean,
         isHeadless: Boolean,
         reinstallDriver: Boolean,
-        prebuiltIOSRunner: Boolean,
         driverHostPort: Int?,
+        platformConfiguration: PlatformConfiguration? = null,
     ): MaestroSession {
         println("ConnectToExistingSession: $connectToExistingSession")
         return when {
@@ -210,7 +213,7 @@ object MaestroSessionManager {
                         driverHostPort,
                         reinstallDriver,
                         deviceType = selectedDevice.device.deviceType,
-                        prebuiltRunner = prebuiltIOSRunner
+                        platformConfiguration = platformConfiguration
                     )
 
                     Platform.WEB -> pickWebDevice(isStudio, isHeadless)
@@ -234,7 +237,8 @@ object MaestroSessionManager {
                     openDriver = !connectToExistingSession,
                     driverHostPort = driverHostPort ?: defaultXcTestPort,
                     reinstallDriver = reinstallDriver,
-                    isStudio = isStudio
+                    isStudio = isStudio,
+                    platformConfiguration = platformConfiguration,
                 ),
                 device = null,
             )
@@ -299,7 +303,8 @@ object MaestroSessionManager {
         openDriver: Boolean,
         driverHostPort: Int,
         reinstallDriver: Boolean,
-        isStudio: Boolean
+        isStudio: Boolean,
+        platformConfiguration: PlatformConfiguration?,
     ): Maestro {
         val device = PickDeviceInteractor.pickDevice(deviceId, driverHostPort)
         return createIOS(
@@ -308,7 +313,7 @@ object MaestroSessionManager {
             driverHostPort,
             reinstallDriver,
             deviceType = device.deviceType,
-            prebuiltRunner = isStudio
+            platformConfiguration = platformConfiguration
         )
     }
 
@@ -338,7 +343,7 @@ object MaestroSessionManager {
         openDriver: Boolean,
         driverHostPort: Int?,
         reinstallDriver: Boolean,
-        prebuiltRunner: Boolean,
+        platformConfiguration: PlatformConfiguration?,
         deviceType: Device.DeviceType,
     ): Maestro {
 
@@ -357,14 +362,16 @@ object MaestroSessionManager {
                 IOSDriverConfig(
                     prebuiltRunner = false,
                     sourceDirectory = driverPath.pathString,
-                    context = Context.CLI
+                    context = Context.CLI,
+                    snapshotKeyHonorModalViews = platformConfiguration?.ios?.snapshotKeyHonorModalViews
                 )
             }
             Device.DeviceType.SIMULATOR -> {
                 IOSDriverConfig(
-                    prebuiltRunner = prebuiltRunner,
+                    prebuiltRunner = false,
                     sourceDirectory =  "driver-iPhoneSimulator",
-                    context = Context.CLI
+                    context = Context.CLI,
+                    snapshotKeyHonorModalViews = platformConfiguration?.ios?.snapshotKeyHonorModalViews
                 )
             }
             else -> throw UnsupportedOperationException("Unsupported device type $deviceType for iOS platform")
