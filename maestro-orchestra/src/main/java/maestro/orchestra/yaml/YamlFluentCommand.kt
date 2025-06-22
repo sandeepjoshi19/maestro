@@ -995,6 +995,7 @@ data class YamlFluentCommand(
             focused = selector.focused,
             childOf = selector.childOf?.let { toElementSelector(it) },
             notExecutedFlag = selector.notExecutedFlag,
+            css = selector.css,
         )
     }
 

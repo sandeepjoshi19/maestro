@@ -105,6 +105,10 @@ interface Driver {
 
     fun setAndroidChromeDevToolsEnabled(enabled: Boolean) = Unit
 
+    fun queryOnDeviceElements(query: OnDeviceElementQuery): List<TreeNode> {
+        return listOf()
+    }
+
     fun isActiveNow(): Boolean
 
     fun makeNewSession()

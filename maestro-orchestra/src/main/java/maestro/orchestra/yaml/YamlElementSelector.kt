@@ -52,5 +52,6 @@ data class YamlElementSelector(
     val waitToSettleTimeoutMs: Int? = null,
     val childOf: YamlElementSelectorUnion? = null,
     val label: String? = null,
-    val notExecutedFlag: Boolean? = null
+    val notExecutedFlag: Boolean? = null,
+    val css: String? = null,
 ) : YamlElementSelectorUnion

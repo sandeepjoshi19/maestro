@@ -43,6 +43,7 @@ data class ElementSelector(
     val focused: Boolean? = null,
     val childOf: ElementSelector? = null,
     val notExecutedFlag: Boolean? = null,
+    val css: String? = null,
 ) {
 
     data class SizeSelector(
@@ -64,6 +65,7 @@ data class ElementSelector(
             containsDescendants = containsDescendants?.map { it.evaluateScripts(jsEngine) },
             index = index?.evaluateScripts(jsEngine),
             childOf = childOf?.evaluateScripts(jsEngine),
+            css = css?.evaluateScripts(jsEngine),
         )
     }
 
@@ -128,6 +130,10 @@ data class ElementSelector(
 
         childOf?.let {
             descriptions.add("Child of: ${it.description()}")
+        }
+
+        css?.let {
+            descriptions.add("CSS: $it")
         }
 
         return descriptions.joinToString(", ")
