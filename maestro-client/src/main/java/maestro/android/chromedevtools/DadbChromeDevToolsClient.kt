@@ -180,12 +180,13 @@ class DadbChromeDevToolsClient(private val dadb: Dadb) {
             throw IllegalStateException("Failed get WebView socket names. Command 'cat /proc/net/unix' failed: ${response.allOutput}")
         }
         return response.allOutput.trim().lines().mapNotNull { line ->
-            line.split(Regex("\\s+")).lastOrNull()?.takeIf { it.startsWith(WEB_VIEW_SOCKET_PREFIX) }?.substring(1)
+            line.split(Regex("\\s+")).lastOrNull()?.takeIf { it.startsWith(CHROME_WEBVIEW_SOCKET_PREFIX) || it.startsWith(WEB_VIEW_SOCKET_PREFIX) }?.substring(1)
         }
     }
 
     companion object {
-        private const val WEB_VIEW_SOCKET_PREFIX = "@chrome_devtools_remote"
+        private const val CHROME_WEBVIEW_SOCKET_PREFIX = "@chrome_devtools_remote"
+        private const val WEB_VIEW_SOCKET_PREFIX = "@webview_devtools_remote_"
     }
 }
 
@@ -195,7 +196,7 @@ fun main() {
         measureTimeMillis {
             DadbChromeDevToolsClient(dadb).apply {
                 getWebViewTreeNodes(null).forEach {
-//                    println(it)
+                    println(it)
                 }
 //                println(getWebViewTreeNodes(null).size)
             }
