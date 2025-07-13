@@ -23,6 +23,7 @@ import com.github.romankh3.image.comparison.ImageComparison
 import maestro.UiElement.Companion.toUiElementOrNull
 import maestro.drivers.WebDriver
 import maestro.testenvironment.TestEnvironment
+import maestro.drivers.CdpWebDriver
 import maestro.utils.MaestroTimer
 import maestro.utils.ScreenshotUtils
 import maestro.utils.SocketUtils
@@ -675,7 +676,7 @@ class Maestro(
                 }
             }
 
-            val driver = WebDriver(
+            val driver = CdpWebDriver(
                 isStudio = isStudio,
                 isHeadless = isHeadless,
             )
