@@ -53,7 +53,8 @@ class TestSuiteInteractor(
         executionPlan: WorkspaceExecutionPlanner.ExecutionPlan,
         reportOut: Sink?,
         env: Map<String, String>,
-        debugOutputPath: Path
+        debugOutputPath: Path,
+        testOutputDir: Path? = null
     ): TestExecutionSummary {
         if (executionPlan.flowsToRun.isEmpty() && executionPlan.sequence.flows.isEmpty()) {
             throw CliError("${shardPrefix}No flows returned from the tag filter used")
@@ -74,7 +75,7 @@ class TestSuiteInteractor(
             val updatedEnv = env
                 .withInjectedShellEnvVars()
                 .withDefaultEnvVars(flowFile)
-            val (result, aiOutput) = runFlow(flowFile, updatedEnv, maestro, debugOutputPath)
+            val (result, aiOutput) = runFlow(flowFile, updatedEnv, maestro, debugOutputPath, testOutputDir)
             flowResults.add(result)
             aiOutputs.add(aiOutput)
 
@@ -94,7 +95,7 @@ class TestSuiteInteractor(
             val updatedEnv = env
                 .withInjectedShellEnvVars()
                 .withDefaultEnvVars(flowFile)
-            val (result, aiOutput) = runFlow(flowFile, updatedEnv, maestro, debugOutputPath)
+            val (result, aiOutput) = runFlow(flowFile, updatedEnv, maestro, debugOutputPath, testOutputDir)
             aiOutputs.add(aiOutput)
 
             if (result.status == FlowStatus.ERROR) {
@@ -154,7 +155,8 @@ class TestSuiteInteractor(
         flowFile: File,
         env: Map<String, String>,
         maestro: Maestro,
-        debugOutputPath: Path
+        debugOutputPath: Path,
+        testOutputDir: Path? = null
     ): Pair<TestExecutionSummary.FlowResult, FlowAIOutput> {
         // TODO(bartekpacia): merge TestExecutionSummary with AI suggestions
         //  (i.e. consider them also part of the test output)
@@ -188,6 +190,7 @@ class TestSuiteInteractor(
 
                 val orchestra = Orchestra(
                     maestro = maestro,
+                    screenshotsDir = testOutputDir?.resolve("screenshots"),
                     onCommandStart = { _, command ->
                         logger.info("${shardPrefix}${command.description()} RUNNING")
                         debugOutput.commands[command] = CommandDebugMetadata(

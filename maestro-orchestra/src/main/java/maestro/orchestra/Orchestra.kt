@@ -62,6 +62,7 @@ import okio.sink
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.lang.Long.max
+import java.nio.file.Path
 import kotlin.coroutines.coroutineContext
 
 // TODO(bartkepacia): Use this in onCommandGeneratedOutput.
@@ -117,7 +118,7 @@ class DefaultFlowController : FlowController {
  */
 class Orchestra(
     private val maestro: Maestro,
-    private val screenshotsDir: File? = null, // TODO(bartekpacia): Orchestra shouldn't interact with files directly.
+    private val screenshotsDir: Path? = null, // TODO(bartekpacia): Orchestra shouldn't interact with files directly.
     private val lookupTimeoutMs: Long = 17000L,
     private val optionalLookupTimeoutMs: Long = 7000L,
     private val httpClient: OkHttpClient? = null,
@@ -952,7 +953,7 @@ class Orchestra(
     private fun takeScreenshotCommand(command: TakeScreenshotCommand): Boolean {
         val pathStr = command.path + ".png"
         val file = screenshotsDir
-            ?.let { File(it, pathStr) }
+            ?.let { it.resolve(pathStr).toFile() }
             ?: File(pathStr)
 
         maestro.takeScreenshot(file, false)
@@ -963,7 +964,7 @@ class Orchestra(
     private fun startRecordingCommand(command: StartRecordingCommand): Boolean {
         val pathStr = command.path + ".mp4"
         val file = screenshotsDir
-            ?.let { File(it, pathStr) }
+            ?.let { it.resolve(pathStr).toFile() }
             ?: File(pathStr)
         screenRecording = maestro.startScreenRecording(file.sink().buffer())
         return false
