@@ -12,6 +12,7 @@ import java.io.Closeable
 import java.net.URI
 import java.security.MessageDigest
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 import kotlin.experimental.xor
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis
@@ -135,53 +136,57 @@ class DadbWebSocketClient(
      * Read a single WebSocket frame from the stream.
      * This blocks until a frame is available or an error occurs.
      */
-    fun readFrame(): Frame {
+    fun readFrame(): Frame? {
+        source.timeout().timeout(200, TimeUnit.MILLISECONDS)
         // The first byte: FIN bit (1 bit), RSV1-3 (3 bits), Opcode (4 bits)
-        val b0 = source.readByte().toInt() and 0xFF
-        val fin = (b0 shr 7) and 1
-        val opcode = b0 and 0x0F
+        try {
+            val b0 = source.readByte().toInt() and 0xFF
+            val fin = (b0 shr 7) and 1
+            val opcode = b0 and 0x0F
 
-        // The second byte: Mask bit (1 bit), Payload length (7 bits)
-        val b1 = source.readByte().toInt() and 0xFF
-        val maskFlag = (b1 shr 7) and 1
-        var payloadLen = (b1 and 0x7F).toLong()
-
-        when (payloadLen) {
-            126L -> {
-                // 126 means the next 2 bytes define the length
-                payloadLen = source.readShort().toLong() and 0xFFFF
+            // The second byte: Mask bit (1 bit), Payload length (7 bits)
+            val b1 = source.readByte().toInt() and 0xFF
+            val maskFlag = (b1 shr 7) and 1
+            var payloadLen = (b1 and 0x7F).toLong()
+            when (payloadLen) {
+                126L -> {
+                    // 126 means the next 2 bytes define the length
+                    payloadLen = source.readShort().toLong() and 0xFFFF
+                }
+                127L -> {
+                    // 127 means the next 8 bytes define the length
+                    payloadLen = source.readLong()
+                }
             }
-            127L -> {
-                // 127 means the next 8 bytes define the length
-                payloadLen = source.readLong()
+
+            // If the mask bit is set, we need to read the mask key (4 bytes)
+            val maskKey = if (maskFlag == 1) {
+                source.readByteArray(4)
+            } else {
+                null
             }
-        }
+            // Read the payload
+            val payload = source.readByteString(payloadLen)
+            // Unmask if needed
+            val realPayload = if (maskKey != null) unmask(payload, maskKey) else payload
 
-        // If the mask bit is set, we need to read the mask key (4 bytes)
-        val maskKey = if (maskFlag == 1) {
-            source.readByteArray(4)
-        } else {
-            null
-        }
-
-        // Read the payload
-        val payload = source.readByteString(payloadLen)
-
-        // Unmask if needed
-        val realPayload = if (maskKey != null) unmask(payload, maskKey) else payload
-
-        return when (opcode) {
-            Opcode.TEXT -> Frame.TextFrame(realPayload)
-            Opcode.BINARY -> Frame.BinaryFrame(realPayload)
-            Opcode.CLOSE -> Frame.CloseFrame(realPayload)
-            Opcode.PING -> Frame.PingFrame(realPayload)
-            Opcode.PONG -> Frame.PongFrame(realPayload)
-            Opcode.CONTINUATION -> Frame.ContinuationFrame(realPayload)
-            else -> {
-                // For unknown opcodes in a robust implementation, you might close the connection
-                throw IllegalStateException("Unknown opcode: $opcode")
+            return when (opcode) {
+                Opcode.TEXT -> Frame.TextFrame(realPayload)
+                Opcode.BINARY -> Frame.BinaryFrame(realPayload)
+                Opcode.CLOSE -> Frame.CloseFrame(realPayload)
+                Opcode.PING -> Frame.PingFrame(realPayload)
+                Opcode.PONG -> Frame.PongFrame(realPayload)
+                Opcode.CONTINUATION -> Frame.ContinuationFrame(realPayload)
+                else -> {
+                    // For unknown opcodes in a robust implementation, you might close the connection
+                    throw IllegalStateException("Unknown opcode: $opcode")
+                }
             }
+            source.timeout().clearTimeout()
+        } catch (e: Exception) {
+            //Timeout Stopping the deadlock
         }
+        return null
     }
 
     /**

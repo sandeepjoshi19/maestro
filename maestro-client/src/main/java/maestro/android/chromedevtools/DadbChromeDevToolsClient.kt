@@ -17,12 +17,12 @@ import okio.use
 import kotlin.system.measureTimeMillis
 
 private data class RuntimeResponse<T>(
-    val result: RemoteObject<T>
+    val result: RemoteObject<T>?
 )
 
 private data class RemoteObject<T>(
     val type: String,
-    val value: T,
+    val value: T?,
 )
 
 data class WebViewInfo(
@@ -88,12 +88,13 @@ class DadbChromeDevToolsClient(private val dadb: Dadb) {
                     false
                 }
                 else{
-                    val visibilityResult = evaluateScript<RuntimeResponse<String>>(it.socketName!!, it.webSocketDebuggerUrl!!,"document.visibilityState").result.value
+                    val visibilityResult = evaluateScript<RuntimeResponse<String>>(it.socketName!!, it.webSocketDebuggerUrl!!,"document.visibilityState")?.result?.value
                     visibilityResult == "visible"
                 }
             }
             .map { info ->
-                evaluateScript<RuntimeResponse<TreeNode>>(info.socketName!!, info.webSocketDebuggerUrl!!, "$script; maestro.viewportX = ${bounds?.x ?: info.screenX }; maestro.viewportY = ${bounds?.y ?: info.screenY}; maestro.viewportWidth = ${bounds?.width ?: info.width}; maestro.viewportHeight = ${bounds?.height ?: info.height}; window.maestro.getContentDescription();").result.value
+                val response = evaluateScript<RuntimeResponse<TreeNode>>(info.socketName!!, info.webSocketDebuggerUrl!!, "$script; maestro.viewportX = ${bounds?.x ?: info.screenX }; maestro.viewportY = ${bounds?.y ?: info.screenY}; maestro.viewportWidth = ${bounds?.width ?: info.width}; maestro.viewportHeight = ${bounds?.height ?: info.height}; window.maestro.getContentDescription();")?.result
+                response?.value ?: TreeNode()
             }
     }
 
@@ -107,21 +108,22 @@ class DadbChromeDevToolsClient(private val dadb: Dadb) {
         ),
     )
 
-    inline fun <reified T> makeRequest(socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T {
+    inline fun <reified T> makeRequest(socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T? {
         val resultTypeReference = object : TypeReference<T>() {}
         return makeRequest(resultTypeReference, socketName, webSocketDebuggerUrl, method, params)
     }
 
-    fun <T> makeRequest(resultTypeReference: TypeReference<T>, socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T {
+    fun <T> makeRequest(resultTypeReference: TypeReference<T>, socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T? {
         val request = json.writeValueAsString(mapOf("id" to 1, "method" to method, "params" to params))
         val response = dadb.open("localabstract:$socketName").use { stream ->
             DadbWebSocketClient(stream, webSocketDebuggerUrl).use { client ->
                 client.connect()
                 client.sendText(request)
-                client.readFrame().payload.string(Charsets.UTF_8)
+                client.readFrame()?.payload?.string(Charsets.UTF_8) ?: ""
             }
         }
         return try {
+            if (response.isBlank()) return null
             val resultType = TypeFactory.defaultInstance().constructType(resultTypeReference)
             val responseType = TypeFactory.defaultInstance()
                 .constructParametricType(DevToolsResponse::class.java, resultType)
