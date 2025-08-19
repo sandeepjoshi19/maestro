@@ -151,6 +151,7 @@ object MaestroSessionManager {
         isHeadless: Boolean,
         driverHostPort: Int?,
     ): MaestroSession {
+        println("ConnectToExistingSession: $connectToExistingSession")
         return when {
             selectedDevice.device != null -> MaestroSession(
                 maestro = when (selectedDevice.device.platform) {

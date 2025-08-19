@@ -1079,6 +1079,10 @@ class AndroidDriver(
                 attributesBuilder["class"] = node.getAttribute("class")
             }
 
+            if (node.hasAttribute("visible-to-user")) {
+                attributesBuilder["visible-to-user"] = node.getAttribute("visible-to-user")
+            }
+
             attributesBuilder
         } else {
             emptyMap()
@@ -1108,65 +1112,65 @@ class AndroidDriver(
     }
 
     fun installMaestroDriverApp() {
-        metrics.measured("operation", mapOf("command" to "installMaestroDriverApp")) {
-            uninstallMaestroDriverApp()
-
-            val maestroAppApk = File.createTempFile("maestro-app", ".apk")
-
-            Maestro::class.java.getResourceAsStream("/maestro-app.apk")?.let {
-                val bufferedSink = maestroAppApk.sink().buffer()
-                bufferedSink.writeAll(it.source())
-                bufferedSink.flush()
-            }
-
-            install(maestroAppApk)
-            if (!isPackageInstalled("dev.mobile.maestro")) {
-                throw IllegalStateException("dev.mobile.maestro was not installed")
-            }
-            maestroAppApk.delete()
-        }
+//        metrics.measured("operation", mapOf("command" to "installMaestroDriverApp")) {
+//            uninstallMaestroDriverApp()
+//
+//            val maestroAppApk = File.createTempFile("maestro-app", ".apk")
+//
+//            Maestro::class.java.getResourceAsStream("/maestro-app.apk")?.let {
+//                val bufferedSink = maestroAppApk.sink().buffer()
+//                bufferedSink.writeAll(it.source())
+//                bufferedSink.flush()
+//            }
+//
+//            install(maestroAppApk)
+//            if (!isPackageInstalled("dev.mobile.maestro")) {
+//                throw IllegalStateException("dev.mobile.maestro was not installed")
+//            }
+//            maestroAppApk.delete()
+//        }
     }
 
     private fun installMaestroServerApp() {
-        uninstallMaestroServerApp()
-
-        val maestroServerApk = File.createTempFile("maestro-server", ".apk")
-
-        Maestro::class.java.getResourceAsStream("/maestro-server.apk")?.let {
-            val bufferedSink = maestroServerApk.sink().buffer()
-            bufferedSink.writeAll(it.source())
-            bufferedSink.flush()
-        }
-
-        install(maestroServerApk)
-        if (!isPackageInstalled("dev.mobile.maestro.test")) {
-            throw IllegalStateException("dev.mobile.maestro.test was not installed")
-        }
-        maestroServerApk.delete()
+//        uninstallMaestroServerApp()
+//
+//        val maestroServerApk = File.createTempFile("maestro-server", ".apk")
+//
+//        Maestro::class.java.getResourceAsStream("/maestro-server.apk")?.let {
+//            val bufferedSink = maestroServerApk.sink().buffer()
+//            bufferedSink.writeAll(it.source())
+//            bufferedSink.flush()
+//        }
+//
+//        install(maestroServerApk)
+//        if (!isPackageInstalled("dev.mobile.maestro.test")) {
+//            throw IllegalStateException("dev.mobile.maestro.test was not installed")
+//        }
+//        maestroServerApk.delete()
     }
 
     private fun installMaestroApks() {
-        installMaestroDriverApp()
-        installMaestroServerApp()
+//        installMaestroDriverApp()
+//        installMaestroServerApp()
     }
 
     fun uninstallMaestroDriverApp() {
-        metrics.measured("operation", mapOf("command" to "uninstallMaestroDriverApp")) {
-            if (isPackageInstalled("dev.mobile.maestro")) {
-                uninstall("dev.mobile.maestro")
-            }
-        }
+//        metrics.measured("operation", mapOf("command" to "uninstallMaestroDriverApp")) {
+//            if (isPackageInstalled("dev.mobile.maestro")) {
+//                uninstall("dev.mobile.maestro")
+//            }
+//        }
     }
 
     private fun uninstallMaestroServerApp() {
-        if (isPackageInstalled("dev.mobile.maestro.test")) {
-            uninstall("dev.mobile.maestro.test")
-        }
+//        if (isPackageInstalled("dev.mobile.maestro.test")) {
+//            uninstall("dev.mobile.maestro.test")
+//        }
     }
 
     private fun uninstallMaestroApks() {
-        uninstallMaestroDriverApp()
-        uninstallMaestroServerApp()
+//        uninstallMaestroDriverApp()
+//        uninstallMaestroServerApp()
     }
 
     private fun install(apkFile: File) {

@@ -52,6 +52,8 @@ class PrintHierarchyCommand : Runnable {
     private val parent: App? = null
 
     override fun run() {
+        println("StartTime: ${System.currentTimeMillis()}")
+        val startTime = System.currentTimeMillis()
         TestDebugReporter.install(
             debugOutputPathAsString = null,
             flattenDebugOutput = false,
@@ -86,6 +88,8 @@ class PrintHierarchyCommand : Runnable {
             insights.unregisterListener(callback)
 
             println(hierarchy)
+            val endTime = System.currentTimeMillis()
+            println("Time taken In seconds: ${(endTime - startTime)/1000} seconds")
         }
     }
 }
