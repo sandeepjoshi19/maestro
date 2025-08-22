@@ -15,6 +15,7 @@ data class TestExecutionSummary(
         val passed: Boolean,
         val flows: List<FlowResult>,
         val duration: Duration? = null,
+        val startTime: Long? = null,
         val deviceName: String? = null,
     )
 
@@ -25,6 +26,7 @@ data class TestExecutionSummary(
         val failure: Failure? = null,
         val unexecuted: Unexecuted? = null,
         val duration: Duration? = null,
+        val startTime: Long? = null,
     )
 
     data class Failure(
