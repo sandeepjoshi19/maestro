@@ -117,9 +117,9 @@ object ViewHierarchy {
         insideWebView: Boolean = false,
     ) {
         serializer.startTag("", "node")
-        if (!nafExcludedClass(node) && !nafCheck(node)) {
-            serializer.attribute("", "NAF", java.lang.Boolean.toString(true))
-        }
+//        if (!nafExcludedClass(node) && !nafCheck(node)) {
+//            serializer.attribute("", "NAF", java.lang.Boolean.toString(true))
+//        }
         serializer.attribute("", "index", Integer.toString(index))
         serializer.attribute("", "hintText", safeCharSeqToString(node.getHintOrFallback()))
         serializer.attribute("", "text", safeCharSeqToString(node.text))
@@ -157,10 +157,10 @@ object ViewHierarchy {
                     )
                     child.recycle()
                 } else {
-                    Log.i(LOGTAG, "Skipping invisible child: $child")
+//                    Log.i(LOGTAG, "Skipping invisible child: $child")
                 }
             } else {
-                Log.i(LOGTAG, "Null child $i/$count, parent: $node")
+//                Log.i(LOGTAG, "Null child $i/$count, parent: $node")
             }
         }
         serializer.endTag("", "node")

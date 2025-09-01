@@ -83,6 +83,9 @@ class App {
     @Option(names = ["--port"], hidden = true)
     var port: Int? = null
 
+    @Option(names = ["--driverPort"], hidden = true)
+    var driverPort: Int? = null
+
     @Option(
         names = ["--device", "--udid"],
         description = ["(Optional) Device ID to run on explicitly, can be a comma separated list of IDs: --device \"Emulator_1,Emulator_2\" "],
@@ -121,13 +124,13 @@ fun main(args: Array<String>) {
             runCatching { ErrorReporter.report(ex, cmdParseResult) }
 
             // make errors red
-            cmd.colorScheme = CommandLine.Help.ColorScheme.Builder()
-                .errors(CommandLine.Help.Ansi.Style.fg_red)
-                .build()
+//            cmd.colorScheme = CommandLine.Help.ColorScheme.Builder()
+//                .errors(CommandLine.Help.Ansi.Style.fg_red)
+//                .build()
 
-            cmd.err.println(
-                cmd.colorScheme.errorText(ex.message)
-            )
+//            cmd.err.println(
+//                cmd.colorScheme.errorText(ex.message)
+//            )
 
             if (ex !is CliError && ex !is MaestroException.UnsupportedJavaVersion) {
                 cmd.err.println("\nThe stack trace was:")

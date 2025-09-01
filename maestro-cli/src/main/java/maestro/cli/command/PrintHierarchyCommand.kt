@@ -26,11 +26,14 @@ import maestro.cli.DisableAnsiMixin
 import maestro.cli.ShowHelpMixin
 import maestro.cli.report.TestDebugReporter
 import maestro.cli.session.MaestroSessionManager
+import maestro.cli.util.getFreePort
 import maestro.cli.view.yellow
+import maestro.studio.MaestroHierarchyServer
 import maestro.utils.CliInsights
 import maestro.utils.Insight
 import maestro.utils.chunkStringByWordCount
 import picocli.CommandLine
+import picocli.CommandLine.Option
 import java.lang.StringBuilder
 
 @CommandLine.Command(
@@ -59,13 +62,16 @@ class PrintHierarchyCommand : Runnable {
             flattenDebugOutput = false,
             printToConsole = parent?.verbose == true,
         )
-
+        var freeDriverHostPort = getFreePort(7001,7128)
+        freeDriverHostPort = parent?.port ?: freeDriverHostPort
+        println(freeDriverHostPort)
         MaestroSessionManager.newSession(
             host = parent?.host,
-            port = parent?.port,
-            driverHostPort = null,
+            port = null,
+            driverHostPort = parent?.port,
             deviceId = parent?.deviceId,
             platform = parent?.platform,
+            isStudio = false
         ) { session ->
             val callback: (Insight) -> Unit = {
                 val message = StringBuilder()
@@ -76,20 +82,31 @@ class PrintHierarchyCommand : Runnable {
                 }
                 println(message.toString())
             }
-            val insights = CliInsights
-
-            insights.onInsightsUpdated(callback)
-
-            val hierarchy = jacksonObjectMapper()
-                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-                .writerWithDefaultPrettyPrinter()
-                .writeValueAsString(session.maestro.viewHierarchy().root)
-
-            insights.unregisterListener(callback)
-
-            println(hierarchy)
-            val endTime = System.currentTimeMillis()
-            println("Time taken In seconds: ${(endTime - startTime)/1000} seconds")
+            val port = getFreePort()
+            MaestroHierarchyServer.start(port,session.maestro)
+//            val insights = CliInsights
+//            var stime = System.currentTimeMillis()
+//            insights.onInsightsUpdated(callback)
+//
+//            val hierarchy = jacksonObjectMapper()
+//                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+//                .writerWithDefaultPrettyPrinter()
+//                .writeValueAsString(session.maestro.viewHierarchy().root)
+//            println(hierarchy)
+//            var etime = System.currentTimeMillis()
+//            println("Time in sec + ${(etime - stime)}")
+//            stime = System.currentTimeMillis()
+//            val hierarchy2 = jacksonObjectMapper()
+//                .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+//                .writerWithDefaultPrettyPrinter()
+//                .writeValueAsString(session.maestro.viewHierarchy().root)
+//            println(hierarchy2)
+//            etime = System.currentTimeMillis()
+//            println("Time in sec + ${(etime - stime)}")
+//            insights.unregisterListener(callback)
+//            val endTime = System.currentTimeMillis()
+//            println("Time taken In seconds: ${(endTime - startTime)} seconds")
+            Thread.currentThread().join()
         }
     }
 }
