@@ -64,6 +64,17 @@ object DeviceService {
                 call.respond(HttpStatusCode.BadRequest, e.message ?: "Failed to run command")
             }
         }
+        routing.post("/api/run-command-with-response") {
+            val request = call.parseBody<RunCommandRequest>()
+            try {
+                val commands = YamlCommandReader.readSingleCommand(Paths.get(""), "", request.yaml)
+                val success = executeCommandsWithResponse(maestro, commands)
+                val response = jacksonObjectMapper().writeValueAsString(mapOf("success" to success))
+                call.respond(response)
+            } catch (e: Exception) {
+                call.respond(HttpStatusCode.BadRequest, e.message ?: "Failed to run command")
+            }
+        }
         routing.post("/api/format-flow") {
             val request = call.parseBody<FormatCommandsRequest>()
             val commands = request.commands.map { YamlCommandReader.readSingleCommand(Paths.get(""), "", it) }
@@ -112,6 +123,15 @@ object DeviceService {
         if (failure != null) {
             throw RuntimeException("Command execution failed")
         }
+    }
+
+    private fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>): Boolean {
+        var failure: Throwable? = null
+        val result = Orchestra(maestro, onCommandFailed = { _, _, throwable ->
+            failure = throwable
+            Orchestra.ErrorResolution.FAIL
+        }).executeCommands(commands)
+        return result
     }
 
     private fun treeToElements(tree: TreeNode): List<UIElement> {

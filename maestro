@@ -2,10 +2,9 @@
 
 set -e
 
-if [ -t 0 ]; then
-  input=""
-else
-  input=$(cat -)
-fi
+export JAVA_HOME=/Users/sandeep.kmr/Library/Java/JavaVirtualMachines/corretto-11.0.23/Contents/Home
+export PATH=$JAVA_HOME/bin:$PATH
+java --version
+set -e
+./gradlew assembleDist
 
-./gradlew :maestro-cli:installDist -q && echo "$input" | ./maestro-cli/build/install/maestro/bin/maestro "$@"

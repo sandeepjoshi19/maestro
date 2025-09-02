@@ -224,7 +224,7 @@ class AndroidDriver(
         PORT_TO_ALLOCATION_POINT[hostPort]?.let {
             LOGGER.warn("Port $hostPort was already allocated. Allocation point: $it")
         }
-
+        println("HostPort: $hostPort")
         PORT_TO_FORWARDER[hostPort] = dadb.tcpForward(
             hostPort,
             hostPort
@@ -1221,6 +1221,11 @@ class AndroidDriver(
                     logger.warn("Failed to uninstall maestro driver app: ${e2.message}")
                     // Just log and continue, don't throw
                 }
+            }
+        }
+        metrics.measured("operation", mapOf("command" to "uninstallMaestroDriverApp")) {
+            if (isPackageInstalled("dev.mobile.maestro")) {
+                uninstall("dev.mobile.maestro")
             }
         }
     }

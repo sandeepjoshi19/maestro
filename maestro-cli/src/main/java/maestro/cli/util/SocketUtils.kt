@@ -10,3 +10,12 @@ fun getFreePort(): Int {
     }
     ServerSocket(0).use { return it.localPort }
 }
+
+fun getFreePort(startPort: Int, endPort: Int): Int {
+    (startPort..endPort).forEach { port ->
+        try {
+            ServerSocket(port).use { return it.localPort }
+        } catch (ignore: Exception) {}
+    }
+    ServerSocket(0).use { return it.localPort }
+}
