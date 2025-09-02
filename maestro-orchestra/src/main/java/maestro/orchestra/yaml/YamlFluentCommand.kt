@@ -70,7 +70,9 @@ import maestro.orchestra.error.InvalidFlowFile
 import maestro.orchestra.error.MediaFileNotFound
 import maestro.orchestra.error.SyntaxError
 import maestro.orchestra.util.Env.withEnv
+import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
@@ -665,7 +667,7 @@ data class YamlFluentCommand(
         val resolvedPath = if (path.isAbsolute) {
             path
         } else {
-            flowPath.resolveSibling(path).toAbsolutePath()
+            resolveCorrectPath(flowPath.toString(),requestedPath)
         }
         if (resolvedPath.equals(flowPath.toAbsolutePath())) {
             throw InvalidFlowFile(
@@ -674,12 +676,64 @@ data class YamlFluentCommand(
             )
         }
         if (!resolvedPath.exists()) {
+            println("Resolved Path does not exist: ${resolvedPath.toUri()}")
             throw InvalidFlowFile("Flow file does not exist: ${resolvedPath.toUri()}", resolvedPath)
         }
         if (resolvedPath.isDirectory()) {
+            println("Resolved Path does not exist: ${resolvedPath.toUri()}")
             throw InvalidFlowFile("Flow file can't be a directory: ${resolvedPath.toUri()}", resolvedPath)
         }
+        println("Resolved Path: $resolvedPath")
         return resolvedPath
+    }
+
+    fun resolveCorrectPath(currentFilePathStr: String, requestedPathStr: String): Path {
+        // 1. Find the correct base path using the backward-searching logic.
+        val basePath = findBasePath(currentFilePathStr, requestedPathStr)
+
+        // 2. If a base path is found, append the rest of the requested path.
+        if (basePath != null) {
+            val requestedPath = Paths.get(requestedPathStr)
+            val requestedParts = requestedPath.toList()
+
+            // Get all parts of the requested path *after* the first one.
+            val remainingParts = if (requestedParts.size > 1) {
+                requestedParts.subList(1, requestedParts.size)
+            } else {
+                emptyList()
+            }
+
+            val remainingPathStr = remainingParts.joinToString(File.separator)
+            return basePath.resolve(remainingPathStr)
+        }
+
+        // 3. Fallback: If no common base is found, resolve from the parent directory
+        // of the current file.
+        val currentPath = Paths.get(currentFilePathStr)
+        val parentDir = if (currentPath.isDirectory()) currentPath else currentPath.parent
+        return parentDir.resolve(requestedPathStr)
+    }
+
+    /**
+     * Helper function to find the base path by searching backwards for the
+     * first directory of the requested path.
+     */
+    private fun findBasePath(firstPathStr: String, requestedPathStr: String): Path? {
+        val firstPath = Paths.get(firstPathStr)
+        val requestedPath = Paths.get(requestedPathStr)
+
+        val firstParts = firstPath.toList()
+        val requestedParts = requestedPath.toList()
+
+        val targetDir = requestedParts.firstOrNull() ?: return null
+        val foundIndex = firstParts.lastIndexOf(targetDir)
+
+        if (foundIndex == -1) {
+            return null
+        }
+
+        val subpath = firstPath.subpath(0, foundIndex + 1)
+        return firstPath.root?.resolve(subpath) ?: subpath
     }
 
     private fun extendedWait(command: YamlExtendedWaitUntil): MaestroCommand {

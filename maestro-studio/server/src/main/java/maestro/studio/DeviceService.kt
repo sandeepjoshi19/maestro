@@ -127,10 +127,11 @@ object DeviceService {
 
     private fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>): Boolean {
         var failure: Throwable? = null
+        val config = YamlCommandReader.getConfig(commands)
         val result = Orchestra(maestro, onCommandFailed = { _, _, throwable ->
             failure = throwable
             Orchestra.ErrorResolution.FAIL
-        }).executeCommands(commands)
+        }).executeCommands(commands,config)
         return result
     }
 
