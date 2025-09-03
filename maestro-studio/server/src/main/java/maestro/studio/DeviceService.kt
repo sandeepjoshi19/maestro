@@ -23,12 +23,14 @@ import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempDirectory
 import maestro.orchestra.MaestroCommand
+import maestro.orchestra.MaestroConfig
 import maestro.orchestra.yaml.YamlCommandReader
 import maestro.orchestra.yaml.YamlFluentCommand
 
 private data class RunCommandRequest(
     val yaml: String,
     val dryRun: Boolean?,
+    val config: MaestroConfig?
 )
 
 private data class FormatCommandsRequest(
@@ -68,9 +70,10 @@ object DeviceService {
         routing.post("/api/run-command-with-response") {
             val request = call.parseBody<RunCommandRequest>()
             try {
+                val config = request.config
                 val commands = YamlCommandReader.MAPPER.readValue(request.yaml, YamlFluentCommand::class.java)
-                    .toCommands(Paths.get(""), "")
-                val success = executeCommandsWithResponse(maestro, commands)
+                    .toCommands(Paths.get(""), config?.appId ?: "")
+                val success = executeCommandsWithResponse(maestro, commands, config)
                 val response = jacksonObjectMapper().writeValueAsString(mapOf("success" to success))
                 call.respond(response)
             } catch (e: Exception) {
@@ -125,9 +128,8 @@ object DeviceService {
         return if (result) null else (failure ?: RuntimeException("Command execution failed"))
     }
 
-    private fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>): Boolean {
+    private fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>, config: MaestroConfig?): Boolean {
         var failure: Throwable? = null
-        val config = YamlCommandReader.getConfig(commands)
         val result = Orchestra(maestro, onCommandFailed = { _, _, throwable ->
             failure = throwable
             Orchestra.ErrorResolution.FAIL

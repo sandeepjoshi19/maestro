@@ -36,6 +36,7 @@ import maestro.android.AndroidAppFiles
 import maestro.android.AndroidLaunchArguments.toAndroidLaunchArguments
 import maestro.utils.BlockingStreamObserver
 import maestro.utils.MaestroTimer
+import maestro.utils.MaestroTimer.withTimeout
 import maestro.utils.Metrics
 import maestro.utils.MetricsProvider
 import maestro.utils.ScreenshotUtils
@@ -554,7 +555,13 @@ class AndroidDriver(
 
     private fun directionalSwipe(durationMs: Long, start: Point, end: Point) {
         metrics.measured("operation", mapOf("command" to "directionalSwipe", "durationMs" to durationMs.toString())) {
-            dadb.shell("input swipe ${start.x} ${start.y} ${end.x} ${end.y} $durationMs")
+            try {
+                val result = withTimeout(3000L) {
+                    dadb.shell("timeout 3 input swipe ${start.x} ${start.y} ${end.x} ${end.y} $durationMs") // This is being timed
+                }
+            } catch (e: Exception) {
+                println("Swipe command timed out and was cancelled.")
+            }
         }
     }
 
