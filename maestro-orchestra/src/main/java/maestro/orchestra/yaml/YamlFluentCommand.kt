@@ -663,11 +663,12 @@ data class YamlFluentCommand(
 
     private fun resolvePath(flowPath: Path, requestedPath: String): Path {
         val path = flowPath.fileSystem.getPath(requestedPath)
-
+//        println("Flow Path: ${flowPath.toString()}")
+//        println("Requested Path: $requestedPath")
         val resolvedPath = if (path.isAbsolute) {
             path
         } else {
-            resolveCorrectPath(flowPath.toString(),requestedPath)
+            Paths.get(normalizePath(resolveCorrectPath(flowPath.toString(),requestedPath).toString()))
         }
         if (resolvedPath.equals(flowPath.toAbsolutePath())) {
             throw InvalidFlowFile(
@@ -712,6 +713,40 @@ data class YamlFluentCommand(
         val currentPath = Paths.get(currentFilePathStr)
         val parentDir = if (currentPath.isDirectory()) currentPath else currentPath.parent
         return parentDir.resolve(requestedPathStr)
+    }
+
+    fun normalizePath(path: String): String {
+        // A deque or a simple list can act as a stack for path components.
+        val resolvedPath = ArrayDeque<String>()
+
+        // Check if the path is absolute to preserve the leading slash.
+        val isAbsolutePath = path.startsWith("/")
+
+        // Split the path into its components and process each one.
+        // We filter out empty strings that result from multiple slashes (e.g., "//")
+        // and single dots "." which represent the current directory.
+        val components = path.split('/').filter { it.isNotEmpty() && it != "." }
+
+        for (component in components) {
+            if (component == "..") {
+                // If we encounter '..', go up one level by removing the last element.
+                // This safely handles cases where the deque is already empty.
+                resolvedPath.removeLastOrNull()
+            } else {
+                // Otherwise, it's a directory or file name, so add it to our path.
+                resolvedPath.addLast(component)
+            }
+        }
+
+        // Join the components back together with the correct separator.
+        var finalPath = resolvedPath.joinToString("/")
+
+        // If the original path was absolute, prepend the leading slash.
+        if (isAbsolutePath) {
+            finalPath = "/$finalPath"
+        }
+
+        return finalPath
     }
 
     /**
