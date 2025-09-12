@@ -89,6 +89,10 @@ class CdpWebDriver(
         }
     }
 
+    override fun startInstrumentationSession() {
+        TODO("Not yet implemented")
+    }
+
     private fun createSeleniumDriver(): WebDriver {
         System.setProperty("webdriver.chrome.silentOutput", "true")
         System.setProperty(ChromeDriverService.CHROME_DRIVER_SILENT_OUTPUT_PROPERTY, "true")
@@ -564,6 +568,14 @@ class CdpWebDriver(
             is OnDeviceElementQuery.Css -> queryCss(query)
             else -> super.queryOnDeviceElements(query)
         }
+    }
+
+    override fun isActiveNow(): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun makeNewSession() {
+        TODO("Not yet implemented")
     }
 
     private fun queryCss(query: OnDeviceElementQuery.Css): List<TreeNode> {

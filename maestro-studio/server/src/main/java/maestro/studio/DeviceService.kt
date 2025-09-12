@@ -75,8 +75,7 @@ object DeviceService {
             val request = call.parseBody<RunCommandRequest>()
             try {
                 val config = request.config
-                val commands = YamlCommandReader.MAPPER.readValue(request.yaml, YamlFluentCommand::class.java)
-                    .toCommands(Paths.get(""), config?.appId ?: "")
+                val commands = MaestroFlowParser.parseCommand(Paths.get(""), "", request.yaml)
                 val success = executeCommandsWithResponse(maestro, commands, config)
                 val response = jacksonObjectMapper().writeValueAsString(mapOf("success" to success))
                 call.respond(response)
@@ -136,13 +135,13 @@ object DeviceService {
         }
     }
 
-    private fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>, config: MaestroConfig?): Boolean {
-        var failure: Throwable? = null
-        val result = Orchestra(maestro, onCommandFailed = { _, _, throwable ->
-            failure = throwable
-            Orchestra.ErrorResolution.FAIL
-        }).executeCommands(commands,config)
-        return result
+    suspend fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>, config: MaestroConfig?): Boolean {
+            var failure: Throwable? = null
+            val result = Orchestra(maestro, onCommandFailed = { _, _, throwable ->
+                failure = throwable
+                Orchestra.ErrorResolution.FAIL
+            }).executeCommands(commands, config)
+            return result
     }
 
     private fun treeToElements(tree: TreeNode): List<UIElement> {

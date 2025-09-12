@@ -111,7 +111,6 @@ class GraalJsEngine(
         context.getBindings("js").putMember("faker", faker)
         context.getBindings("js").putMember("output", ProxyObject.fromMap(outputBinding))
         context.getBindings("js").putMember("maestro", ProxyObject.fromMap(maestroBinding))
-        context.getBindings("js").putMember("files",fileBinding)
 
         maestroBinding["platform"] = platform
 

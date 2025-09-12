@@ -162,18 +162,9 @@ class TestSuiteInteractor(
         //  (i.e. consider them also part of the test output)
         //  See #1973
 
-        if (!maestro.driver.isActiveNow()){
-            println("Session was disconnected")
-            maestro.driver.makeNewSession()
-            maestro.driver.startInstrumentationSession()
-        } else{
-            println("Session was connected")
-        }
-
-        var flowName: String = flowFile.nameWithoutExtension
         var flowStatus: FlowStatus
         var errorMessage: String? = null
-        logger.info("Flow Started: $flowName")
+
         val debugOutput = FlowDebugOutput()
         val aiOutput = FlowAIOutput(
             flowName = flowFile.nameWithoutExtension,
@@ -182,7 +173,7 @@ class TestSuiteInteractor(
         val commands = YamlCommandReader
             .readCommands(flowFile.toPath())
             .withEnv(env)
-
+        val config = YamlCommandReader.getConfig(commands)
         var flowName: String = YamlCommandReader.getConfig(commands)?.name ?: flowFile.nameWithoutExtension
 
         logger.info("$shardPrefix Running flow $flowName")

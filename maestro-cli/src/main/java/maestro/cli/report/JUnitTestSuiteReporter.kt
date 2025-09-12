@@ -39,11 +39,17 @@ class JUnitTestSuiteReporter(
                             message = failure.message,
                         )
                     },
+                    unexecuted = flow.unexecuted?.let { unexecuted ->
+                        Unexecuted(
+                            message = unexecuted.message
+                        )
+                    },
                     time = flow.duration?.toDouble(DurationUnit.SECONDS)?.toString(),
                     timestamp = flow.startTime?.let { millisToCurrentLocalDateTime(it) },
                     status = flow.status
                 )
-            }
+            },
+        unexecuted = suite.flows.count { it.status == FlowStatus.UNEXECUTED }
     )
 
 
