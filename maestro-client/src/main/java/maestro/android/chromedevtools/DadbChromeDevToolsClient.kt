@@ -6,13 +6,16 @@ import com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PRO
 import com.fasterxml.jackson.databind.type.TypeFactory
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.gson.Gson
+import com.google.gson.JsonParser
+import com.google.gson.JsonSyntaxException
 import dadb.Dadb
+import maestro.Bounds
 import maestro.Maestro
 import maestro.TreeNode
 import maestro.utils.HttpClient
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -28,44 +31,60 @@ import java.util.concurrent.TimeoutException
 import kotlin.system.measureTimeMillis
 
 private data class RuntimeResponse<T>(
-    val result: RemoteObject<T>
+    val result: RemoteObject<T>?
 )
 
 private data class RemoteObject<T>(
     val type: String,
-    val value: T,
+    val value: T?,
 )
 
 data class WebViewInfo(
-    val socketName: String,
-    val webSocketDebuggerUrl: String,
-    val visible: Boolean,
-    val attached: Boolean,
-    val empty: Boolean,
-    val screenX: Int,
-    val screenY: Int,
-    val width: Int,
-    val height: Int,
+    val socketName: String?,
+    val webSocketDebuggerUrl: String?,
+    val visible: Boolean?,
+    val attached: Boolean?,
+    val empty: Boolean?,
+    val screenX: Int?,
+    val screenY: Int?,
+    val width: Int?,
+    val height: Int?,
+    val type: String?,
+    val url: String?
 )
 
 private data class WebViewResponse(
-    val description: String,
-    val webSocketDebuggerUrl: String,
+    val description: String?,
+    val title: String?,
+    val type: String?,
+    val url: String?,
+    val webSocketDebuggerUrl: String?,
 )
 
 private data class WebViewDescription(
-    val visible: Boolean,
-    val attached: Boolean,
-    val empty: Boolean,
-    val screenX: Int,
-    val screenY: Int,
-    val width: Int,
-    val height: Int,
+    val visible: Boolean?,
+    val attached: Boolean?,
+    val empty: Boolean?,
+    val screenX: Int?,
+    val screenY: Int?,
+    val width: Int?,
+    val height: Int?,
 )
 
 private data class DevToolsResponse<T>(
     val id: Int,
     val result: T,
+    val error: RpcError?
+)
+
+data class RpcError(
+    val code: Int?,
+    val message: String?
+)
+
+data class VisibilityResult(
+    val type: String,
+    val value: String
 )
 
 class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
@@ -74,6 +93,8 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
 
     private val okhttp = HttpClient.build("DadbChromeDevToolsClient").newBuilder()
         .dadb(dadb)
+        .callTimeout(5000, TimeUnit.MILLISECONDS)
+        .readTimeout(5000, TimeUnit.MILLISECONDS)
         .build()
 
     private val script = Maestro::class.java.getResourceAsStream("/maestro-web.js")?.let {
@@ -88,16 +109,20 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
         okhttp.cache?.close()
     }
 
-    fun getWebViewTreeNodes(): List<TreeNode> {
+    fun getWebViewTreeNodes(bounds: Bounds?): List<TreeNode> {
         return getWebViewInfos()
-            .filter { it.visible }
-            .mapNotNull { info ->
-                try {
-                    evaluateScript<RuntimeResponse<TreeNode>>(info.socketName, info.webSocketDebuggerUrl, "$script; maestro.viewportX = ${info.screenX}; maestro.viewportY = ${info.screenY}; maestro.viewportWidth = ${info.width}; maestro.viewportHeight = ${info.height}; window.maestro.getContentDescription();").result.value
-                } catch (e: IOException) {
-                    logger.warn("Failed to retrieve WebView hierarchy from chrome devtools: ${info.socketName} ${info.webSocketDebuggerUrl}", e)
-                    null
+            .filter {
+                if( it.type != "page"){
+                    false
                 }
+                else{
+                    val visibilityResult = evaluateScript<RuntimeResponse<String>>(it.socketName!!, it.webSocketDebuggerUrl!!,"document.visibilityState")?.result?.value
+                    visibilityResult == "visible"
+                }
+            }
+            .map { info ->
+                val response = evaluateScript<RuntimeResponse<TreeNode>>(info.socketName!!, info.webSocketDebuggerUrl!!, "$script; maestro.viewportX = ${bounds?.x ?: info.screenX }; maestro.viewportY = ${bounds?.y ?: info.screenY}; maestro.viewportWidth = ${bounds?.width ?: info.width}; maestro.viewportHeight = ${bounds?.height ?: info.height}; window.maestro.getContentDescription();")?.result
+                response?.value ?: TreeNode()
             }
     }
 
@@ -111,18 +136,19 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
         ),
     )
 
-    inline fun <reified T> makeRequest(socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T {
+    inline fun <reified T> makeRequest(socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T? {
         val resultTypeReference = object : TypeReference<T>() {}
         return makeRequest(resultTypeReference, socketName, webSocketDebuggerUrl, method, params)
     }
 
-    fun <T> makeRequest(resultTypeReference: TypeReference<T>, socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T {
+    fun <T> makeRequest(resultTypeReference: TypeReference<T>, socketName: String, webSocketDebuggerUrl: String, method: String, params: Any?): T? {
         val request = json.writeValueAsString(mapOf("id" to 1, "method" to method, "params" to params))
         val url = webSocketDebuggerUrl.replace("ws", "http").toHttpUrl().newBuilder()
             .host("localabstract.$socketName.adb")
             .build()
         val response = makeSingleWebsocketRequest(url, request)
         return try {
+            if (response.isBlank()) return null
             val resultType = TypeFactory.defaultInstance().constructType(resultTypeReference)
             val responseType = TypeFactory.defaultInstance()
                 .constructParametricType(DevToolsResponse::class.java, resultType)
@@ -154,9 +180,10 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
         )
         ws.send(message)
         val response = try {
-            future.get(5000, TimeUnit.SECONDS)
+            future.get(200, TimeUnit.MILLISECONDS)
         } catch (e: TimeoutException) {
-            throw TimeoutException("Timed out waiting for websocket response")
+//            throw TimeoutException("Timed out waiting for websocket response")
+            return ""
         } catch (e: ExecutionException) {
             throw e.cause ?: e
         }
@@ -184,27 +211,39 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
             return emptyList()
         }
 
-        val body = response.body?.string() ?: throw IllegalStateException("No body found")
-
+        val body = response.body?.string()
         return try {
-            json.readValue<List<WebViewResponse>>(body).mapNotNull { parsed ->
+            json.readValue<List<WebViewResponse>>(body?: Gson().toJson("[]")).mapNotNull { parsed ->
                 // Description is empty for eg. service workers
-                if (parsed.description.isBlank()) return@mapNotNull null
-                val description = json.readValue(parsed.description, WebViewDescription::class.java)
+                var description: WebViewDescription? = null
+                if ( !parsed.description.isNullOrBlank() && isJson(parsed.description)) {
+                    description = json.readValue(parsed.description, WebViewDescription::class.java)
+                }
                 WebViewInfo(
                     socketName = socketName,
                     webSocketDebuggerUrl = parsed.webSocketDebuggerUrl,
-                    visible = description.visible,
-                    attached = description.attached,
-                    empty = description.empty,
-                    screenX = description.screenX,
-                    screenY = description.screenY,
-                    width = description.width,
-                    height = description.height,
+                    visible = description?.visible,
+                    attached = description?.attached,
+                    empty = description?.empty,
+                    screenX = description?.screenX,
+                    screenY = description?.screenY,
+                    width = description?.width,
+                    height = description?.height,
+                    type = parsed.type,
+                    url = parsed.url
                 )
-            }.filter { it.attached && it.visible && !it.empty }
+            }.filter { (it.attached == true && it.visible == true && it.empty != true ) || it.type == "page"}
         } catch (e: JsonProcessingException) {
             throw IllegalStateException("Failed to parse WebView chrome dev tools response:\n$body", e)
+        }
+    }
+
+    fun isJson(string: String): Boolean {
+        return try {
+            JsonParser.parseString(string)
+            true
+        } catch (e: JsonSyntaxException) {
+            false
         }
     }
 
@@ -214,11 +253,12 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
             throw IllegalStateException("Failed get WebView socket names. Command 'cat /proc/net/unix' failed: ${response.allOutput}")
         }
         return response.allOutput.trim().lines().mapNotNull { line ->
-            line.split(Regex("\\s+")).lastOrNull()?.takeIf { it.startsWith(WEB_VIEW_SOCKET_PREFIX) }?.substring(1)
+            line.split(Regex("\\s+")).lastOrNull()?.takeIf { it.startsWith(CHROME_WEBVIEW_SOCKET_PREFIX) || it.startsWith(WEB_VIEW_SOCKET_PREFIX) }?.substring(1)
         }.toSet()
     }
 
     companion object {
+        private const val CHROME_WEBVIEW_SOCKET_PREFIX = "@chrome_devtools_remote"
         private const val WEB_VIEW_SOCKET_PREFIX = "@webview_devtools_remote_"
 
         private val logger = LoggerFactory.getLogger(Maestro::class.java)
@@ -228,11 +268,11 @@ class DadbChromeDevToolsClient(private val dadb: Dadb): Closeable {
 fun main() {
     (Dadb.discover() ?: throw IllegalStateException("No devices found")).use { dadb ->
         DadbChromeDevToolsClient(dadb).apply {
-            while (true) {
                 measureTimeMillis {
-                    println(getWebViewTreeNodes().size)
+                    getWebViewTreeNodes(null).forEach {
+                        println(Gson().toJson(it))
+                    }
                 }.also { println("time: $it") }
-            }
         }
     }
 }

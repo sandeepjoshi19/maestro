@@ -5,6 +5,7 @@ import maestro.Bounds
 import maestro.TreeNode
 import maestro.UiElement
 import maestro.UiElement.Companion.toUiElementOrNull
+import org.slf4j.LoggerFactory
 import java.io.Closeable
 
 class AndroidWebViewHierarchyClient(dadb: Dadb): Closeable {
@@ -12,10 +13,15 @@ class AndroidWebViewHierarchyClient(dadb: Dadb): Closeable {
     private val devToolsClient = DadbChromeDevToolsClient(dadb)
 
     fun augmentHierarchy(baseHierarchy: TreeNode, chromeDevToolsEnabled: Boolean): TreeNode {
+        LOGGER.info("HAS WEBVIEW: ${hasWebView(baseHierarchy)}")
         if (!chromeDevToolsEnabled) return baseHierarchy
         if (!hasWebView(baseHierarchy)) return baseHierarchy
         // TODO: Adapt to handle chrome in the same way
-        val webViewHierarchy = devToolsClient.getWebViewTreeNodes()
+        LOGGER.info("GETTING WEBVIEW HIERARCHY")
+        val webViewNode = findWebViewNodes(baseHierarchy)
+        val  bounds = webViewNode?.toUiElementOrNull()?.bounds
+        val webViewHierarchy = devToolsClient.getWebViewTreeNodes(bounds)
+        LOGGER.info("MERGING HIERARCHY")
         val merged = mergeHierarchies(baseHierarchy, webViewHierarchy)
         return merged
     }
@@ -25,27 +31,15 @@ class AndroidWebViewHierarchyClient(dadb: Dadb): Closeable {
     }
 
     companion object {
-
+        private val LOGGER = LoggerFactory.getLogger(AndroidWebViewHierarchyClient::class.java)
         fun mergeHierarchies(baseHierarchy: TreeNode, webViewHierarchy: List<TreeNode>): TreeNode {
             if (webViewHierarchy.isEmpty()) return baseHierarchy
-            val newNodes = mutableListOf<TreeNode>()
-            val baseNodes = baseHierarchy.aggregate().mapNotNull { it.toUiElementOrNull() }
-            // We can use a quadtree here if this is too slow
-            val webViewNodes = webViewHierarchy.flatMap { it.aggregate() }.filter {
-                it.attributes["text"]?.isNotBlank() == true
-                        || it.attributes["resource-id"]?.isNotBlank() == true
-                        || it.attributes["hintText"]?.isNotBlank() == true
-                        || it.attributes["accessibilityText"]?.isNotBlank() == true
-            }.mapNotNull { it.toUiElementOrNull() }.filter {
-                it.bounds.width > 0 && it.bounds.height > 0
+
+            val webViewNode = findWebViewNodes(baseHierarchy)
+            if (webViewNode != null) {
+                webViewNode.children = webViewHierarchy
             }
-            webViewNodes.forEach { webViewNode ->
-                if (!baseNodes.any { webViewNode.mergeWith(it) }) {
-                    newNodes.add(webViewNode.treeNode)
-                }
-            }
-            if (newNodes.isEmpty()) return baseHierarchy
-            return TreeNode(children = listOf(baseHierarchy) + newNodes)
+            return baseHierarchy
         }
 
         private fun UiElement.mergeWith(base: UiElement): Boolean {
@@ -83,6 +77,20 @@ class AndroidWebViewHierarchyClient(dadb: Dadb): Closeable {
             return true
         }
 
+        private fun findWebViewNodes(node: TreeNode?): TreeNode? {
+            if(node == null){
+                return null
+            }
+
+            if (isWebView(node)){
+                return node
+            }
+            for ( child in node.children ){
+                return node.children.firstNotNullOfOrNull { findWebViewNodes(it) }
+            }
+            return null
+        }
+
         private fun TreeNode.texts(): List<String> {
             return listOfNotNull(attributes["text"], attributes["hintText"], attributes["accessibilityText"]).filter { it.isNotEmpty() }
         }
@@ -100,7 +108,7 @@ class AndroidWebViewHierarchyClient(dadb: Dadb): Closeable {
         }
 
         private fun isWebView(node: TreeNode): Boolean {
-            return node.attributes["class"] == "android.webkit.WebView"
+            return node.attributes["class"] == "android.webkit.WebView" || node.attributes["accessibilityText"]?.equals("Web View", true) == true || node.attributes["accessibilityText"]?.equals("WebView",true) == true
         }
     }
 }
