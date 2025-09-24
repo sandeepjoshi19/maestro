@@ -34,6 +34,7 @@ import maestro.cli.command.PrintHierarchyCommand
 import maestro.cli.command.QueryCommand
 import maestro.cli.command.RecordCommand
 import maestro.cli.command.StartDeviceCommand
+import maestro.cli.command.StartMaestroServerCommand
 import maestro.cli.command.StudioCommand
 import maestro.cli.command.TestCommand
 import maestro.cli.command.UploadCommand
@@ -70,6 +71,7 @@ import kotlin.system.exitProcess
         CheckSyntaxCommand::class,
         DriverCommand::class,
         McpCommand::class,
+        StartMaestroServerCommand::class
     ]
 )
 class App {
