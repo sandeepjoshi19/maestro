@@ -85,10 +85,7 @@ class AndroidWebViewHierarchyClient(dadb: Dadb): Closeable {
             if (isWebView(node)){
                 return node
             }
-            for ( child in node.children ){
-                return node.children.firstNotNullOfOrNull { findWebViewNodes(it) }
-            }
-            return null
+            return node.children.firstNotNullOfOrNull { findWebViewNodes(it) }
         }
 
         private fun TreeNode.texts(): List<String> {
