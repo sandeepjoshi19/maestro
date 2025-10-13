@@ -141,6 +141,38 @@
             return traverse(el, false);
         });
     }
+    maestro.findScrollable = (parentElement) => {
+        if (!parentElement) {
+            return null;
+        }
+
+        // A queue to hold elements to check, starting with the parent.
+        const queue = [parentElement];
+        const scrollableOverflow = ['auto', 'scroll'];
+
+        // Continue as long as there are elements to check.
+        while (queue.length > 0) {
+            // Get the next element from the front of the queue.
+            const element = queue.shift();
+
+            const style = window.getComputedStyle(element);
+            const isScrollableY = scrollableOverflow.includes(style.overflowY);
+            const hasOverflow = element.scrollHeight > element.clientHeight;
+
+            // Check if the current element is scrollable.
+            if (isScrollableY && hasOverflow) {
+                // Because we're searching level by level, the first one we find
+                // is guaranteed to be the outermost one.
+                return element;
+            }
+
+            // If not scrollable, add all its direct children to the back of the queue.
+            queue.push(...element.children);
+        }
+
+        // If the loop finishes, no scrollable element was found.
+        return null;
+    }
 
     maestro.tapOnSyntheticElement = (x, y) => {
         // This function is used to tap on synthetic elements like <option> that do not have a visual representation.
@@ -170,6 +202,7 @@
             }
         }
     }
+
 
     // https://stackoverflow.com/a/5178132
     maestro.createXPathFromElement = (domElement) => {

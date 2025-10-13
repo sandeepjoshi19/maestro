@@ -178,7 +178,16 @@ class CdpWebDriver(
     }
 
     private fun scroll(top: String, left: String) {
-        executeJS("window.scroll({ top: $top, left: $left, behavior: 'smooth' })")
+        executeJS("""
+            (() => {
+                const scrollableElement = window.maestro.findScrollable(document.body);
+                if (scrollableElement) {
+                    scrollableElement.scrollBy({ top: $top, left: $left, behavior: 'smooth' });
+                } else {
+                    window.scroll({ top: $top, left: $left, behavior: 'smooth' });
+                }
+            })()
+        """.trimIndent())
     }
 
     private fun random(start: Int, end: Int): Int {
