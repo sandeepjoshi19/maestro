@@ -78,12 +78,12 @@ class AndroidDriver(
 
     private var channel = ManagedChannelBuilder.forAddress("localhost", this.hostPort)
         .usePlaintext()
-        .keepAliveTime(2, TimeUnit.MINUTES)
+        .keepAliveTime(30, TimeUnit.SECONDS)
         .keepAliveTimeout(20, TimeUnit.SECONDS)
         .keepAliveWithoutCalls(true)
         .build()
     private var blockingStub = MaestroDriverGrpc.newBlockingStub(channel)
-    private val blockingStubWithTimeout get() = blockingStub.withDeadlineAfter(120, TimeUnit.SECONDS)
+    private val blockingStubWithTimeout get() = blockingStub.withDeadlineAfter(25, TimeUnit.SECONDS)
     private val asyncStub = MaestroDriverGrpc.newStub(channel)
     private val documentBuilderFactory = DocumentBuilderFactory.newInstance()
 
@@ -679,11 +679,12 @@ class AndroidDriver(
     }
 
     override fun openLink(link: String, appId: String?, autoVerify: Boolean, browser: Boolean) {
+        println("OpenLink: $link $appId $autoVerify $browser")
         metrics.measured("operation", mapOf("command" to "openLink", "appId" to appId, "autoVerify" to autoVerify.toString(), "browser" to browser.toString())) {
             if (browser) {
                 openBrowser(link)
             } else {
-                dadb.shell("am start -a android.intent.action.VIEW -d \"$link\"")
+                dadb.shell("timeout 3 am start -a android.intent.action.VIEW -d \"$link\"")
             }
 
             if (autoVerify) {
@@ -748,15 +749,27 @@ class AndroidDriver(
         val installedPackages = installedPackages()
         when {
             installedPackages.contains("com.android.chrome") -> {
-                dadb.shell("am start -a android.intent.action.VIEW -d \"$link\" com.android.chrome")
+                dadb.shell(
+                    """
+                    timeout 3 \
+                    am start \
+                      -a android.intent.action.VIEW \
+                      -d "$link" \
+                      -c android.intent.category.BROWSABLE \
+                      -n com.android.chrome/com.google.android.apps.chrome.Main \
+                      --es com.android.browser.application_id com.flipkart.android \
+                      --ez create_new_tab false
+                    """.trimIndent()
+                )
+
             }
 
             installedPackages.contains("org.mozilla.firefox") -> {
-                dadb.shell("am start -a android.intent.action.VIEW -d \"$link\" org.mozilla.firefox")
+                dadb.shell("timeout 3 am start -a android.intent.action.VIEW -d \"$link\" org.mozilla.firefox")
             }
 
             else -> {
-                dadb.shell("am start -a android.intent.action.VIEW -d \"$link\"")
+                dadb.shell("timeout 3 am start -a android.intent.action.VIEW -d \"$link\"")
             }
         }
     }
@@ -840,11 +853,12 @@ class AndroidDriver(
     }
 
     override fun waitForAppToSettle(initialHierarchy: ViewHierarchy?, appId: String?, timeoutMs: Int?): ViewHierarchy? {
-        return metrics.measured("operation", mapOf("command" to "waitForAppToSettle", "appId" to appId, "timeoutMs" to timeoutMs.toString())) {
+        val updatedTimeout = timeoutMs ?: 4000
+        return metrics.measured("operation", mapOf("command" to "waitForAppToSettle", "appId" to appId, "timeoutMs" to updatedTimeout.toString())) {
             if (appId != null) {
-                waitForWindowToSettle(appId, initialHierarchy, timeoutMs)
+                waitForWindowToSettle(appId, initialHierarchy, updatedTimeout)
             } else {
-                ScreenshotUtils.waitForAppToSettle(initialHierarchy, this, timeoutMs)
+                ScreenshotUtils.waitForAppToSettle(initialHierarchy, this, updatedTimeout)
             }
         }
     }

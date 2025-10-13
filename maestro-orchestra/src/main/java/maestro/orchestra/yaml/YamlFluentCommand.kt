@@ -673,7 +673,6 @@ data class YamlFluentCommand(
             println("Resolved Path does not exist: ${resolvedPath.toUri()}")
             throw InvalidFlowFile("Flow file can't be a directory: ${resolvedPath.toUri()}", resolvedPath)
         }
-        println("Resolved Path: $resolvedPath")
         return resolvedPath
     }
 
