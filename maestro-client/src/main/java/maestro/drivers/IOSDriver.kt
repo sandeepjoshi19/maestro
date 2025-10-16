@@ -281,7 +281,7 @@ class IOSDriver(
                 SwipeDirection.UP -> {
                     startPoint = Point(
                         x = 0.5.asPercentOf(width),
-                        y = 0.9.asPercentOf(height),
+                        y = 0.75.asPercentOf(height),
                     )
                     endPoint = Point(
                         x = 0.5.asPercentOf(width),
