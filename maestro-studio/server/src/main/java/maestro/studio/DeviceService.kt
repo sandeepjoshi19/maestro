@@ -76,8 +76,14 @@ object DeviceService {
             try {
                 val config = request.config
                 val commands = MaestroFlowParser.parseCommand(Paths.get(""), "", request.yaml)
-                val success = executeCommandsWithResponse(maestro, commands, config)
-                val response = jacksonObjectMapper().writeValueAsString(mapOf("success" to success))
+                val executionResult = executeCommandsWithResponse(maestro, commands, config)
+                val responseMap = mapOf(
+                    "success" to executionResult.success,
+                    "log" to executionResult.logs
+                )
+                // println("Response map: $responseMap")
+                val response = jacksonObjectMapper().writeValueAsString(responseMap)
+                // println("JSON response: $response")
                 call.respond(response)
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.BadRequest, e.message ?: "Failed to run command")
@@ -135,13 +141,90 @@ object DeviceService {
         }
     }
 
-    suspend fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>, config: MaestroConfig?): Boolean {
-            var failure: Throwable? = null
-            val result = Orchestra(maestro, onCommandFailed = { _, _, throwable ->
+    data class ExecutionResult(
+        val success: Boolean,
+        val logs: String
+    )
+    
+    data class CommandExecutionInfo(
+        val startTime: Long,
+        var endTime: Long? = null,
+        var duration: Long? = null,
+        val jsLogs: MutableList<String> = mutableListOf()
+    )
+
+    suspend fun executeCommandsWithResponse(maestro: Maestro, commands: List<MaestroCommand>, config: MaestroConfig?): ExecutionResult {
+        var failure: Throwable? = null
+        val logMessages = mutableListOf<String>()
+        val commandInfoMap = mutableMapOf<MaestroCommand, CommandExecutionInfo>()
+        
+        val result = Orchestra(
+            maestro = maestro,
+            onCommandStart = { _, command ->
+                val startTime = System.currentTimeMillis()
+                commandInfoMap[command] = CommandExecutionInfo(startTime)
+                logMessages.add("[${formatTimestamp(startTime)}] [RUNNING] ${command.description()}")
+            },
+            onCommandComplete = { _, command ->
+                val endTime = System.currentTimeMillis()
+                commandInfoMap[command]?.let { info ->
+                    info.endTime = endTime
+                    info.duration = endTime - info.startTime
+                    
+                    val logEntry = buildString {
+                        append("[${formatTimestamp(endTime)}] [COMPLETED] ${command.description()}")
+                        append(" (${info.duration}ms)")
+                        if (info.jsLogs.isNotEmpty()) {
+                            append("\n  Console logs:")
+                            info.jsLogs.forEach { log ->
+                                append("\n    - $log")
+                            }
+                        }
+                    }
+                    logMessages.add(logEntry)
+                }
+            },
+            onCommandFailed = { _, command, throwable ->
                 failure = throwable
+                val endTime = System.currentTimeMillis()
+                commandInfoMap[command]?.let { info ->
+                    info.endTime = endTime
+                    info.duration = endTime - info.startTime
+                }
+                logMessages.add("[${formatTimestamp(endTime)}] [FAILED] ${command.description()}: ${throwable.message}")
                 Orchestra.ErrorResolution.FAIL
-            }).executeCommands(commands, config)
-            return result
+            },
+            onCommandSkipped = { _, command ->
+                logMessages.add("[${formatTimestamp(System.currentTimeMillis())}] [SKIPPED] ${command.description()}")
+            },
+            onCommandWarned = { _, command ->
+                logMessages.add("[${formatTimestamp(System.currentTimeMillis())}] [WARNED] ${command.description()}")
+            },
+            onCommandMetadataUpdate = { command, metadata ->
+                // Capture JavaScript console logs immediately
+                metadata.logMessages.forEach { jsLog ->
+                    val commandInfo = commandInfoMap[command]
+                    if (commandInfo != null && !commandInfo.jsLogs.contains(jsLog)) {
+                        commandInfo.jsLogs.add(jsLog)
+                        // Add console logs immediately to the log output
+                        logMessages.add("  [JS Console] $jsLog")
+                    }
+                }
+                // Capture AI reasoning if present
+                metadata.aiReasoning?.let { reasoning ->
+                    logMessages.add("  [AI Reasoning] $reasoning")
+                }
+            }
+        ).executeCommands(commands, config)
+        
+        val logsText = logMessages.joinToString("\n")
+        return ExecutionResult(result, logsText)
+    }
+    
+    private fun formatTimestamp(millis: Long): String {
+        val date = java.util.Date(millis)
+        val format = java.text.SimpleDateFormat("HH:mm:ss.SSS")
+        return format.format(date)
     }
 
     private fun treeToElements(tree: TreeNode): List<UIElement> {
