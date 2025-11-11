@@ -25,12 +25,20 @@ class ChromeSeleniumFactory(
         return ChromeDriver(
             driverService,
             ChromeOptions().apply {
+                addArguments("--no-sandbox")
+                addArguments("--disable-setuid-sandbox")
+                addArguments("--disable-dev-shm-usage")
+                addArguments("--disable-gpu")
+                addArguments("--disable-software-rasterizer")
+                addArguments("--disable-dbus") 
+                addArguments("--use-angle=swiftshader") 
                 addArguments("--remote-allow-origins=*")
-                addArguments("--disable-search-engine-choice-screen")
                 addArguments("--lang=en")
+                addArguments("--disable-extensions")
+                addArguments("--mute-audio")
                 if (isHeadless) {
                     addArguments("--headless=new")
-                    addArguments("--window-size=1024,768")
+                    addArguments("--window-size=2560,1440")
                     setExperimentalOption("detach", true)
                 }
             }
